@@ -108,6 +108,7 @@
         .status-badge { font-size: 9px; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
         .badge-loaded { background: #dcfce7; color: #15803d; }
         .badge-unloaded { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
+        .badge-nostack { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; font-size: 9px; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
 
         .btn-item-delete {
             background: none; border: none; color: #ef4444; cursor: pointer;
@@ -139,8 +140,18 @@
         .html-label-memo { 
             color: #1e3a8a; 
             font-size: 13px; 
-            display: block; 
+            display: inline; 
             font-weight: 800;
+        }
+        .html-label-nostack {
+            color: #dc2626;
+            font-size: 12px;
+            font-weight: bold;
+            background: #fee2e2;
+            border: 1px solid #f87171;
+            padding: 1px 4px;
+            border-radius: 3px;
+            margin-right: 4px;
         }
 
         @media screen and (max-width: 768px) {
@@ -221,9 +232,13 @@
             <label style="font-weight: bold; color: #2563eb;">📝 メモ (品名等):</label>
             <input type="text" id="cargo-memo" value="ラス3000㎡" placeholder="例: ラス3000㎡">
         </div>
-        <div class="input-group" style="margin-bottom: 12px;">
+        <div class="input-group">
             <label style="font-weight: bold; color: #d97706;">⚖️ 重量 (kg):</label>
             <input type="number" id="cargo-weight" value="3000" step="50" min="0">
+        </div>
+        <div class="input-group" style="margin-bottom: 12px; background: #fff1f2; padding: 4px 6px; border-radius: 4px; border: 1px solid #fecdd3;">
+            <label style="font-weight: bold; color: #e11d48; width: 120px;">⚠️ 上積不可:</label>
+            <input type="checkbox" id="cargo-nostack" style="width: auto; transform: scale(1.2); cursor: pointer;">
         </div>
 
         <div class="input-group">
@@ -379,7 +394,6 @@
             cabBottomMesh.position.set(0, halfHeight / 2, cabZ);
             truckGroup.add(cabBottomMesh);
 
-            // 赤の線（側面と背面のみ配置、窓の部分＝前面には配置しない）
             const stripeMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 });
             
             const stripeLeftGeo = new THREE.BoxGeometry(0.02, 0.06, cabLength);
@@ -403,7 +417,6 @@
             cabTopMesh.position.set(0, halfHeight + halfHeight / 2, cabZ);
             truckGroup.add(cabTopMesh);
 
-            // 上の白い部分に水色の窓を配置
             const glassWidth = cabWidth * 0.85;
             const glassHeight = halfHeight * 0.6;
             const glassMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
@@ -506,7 +519,7 @@
             });
         }
 
-        function createCargoMesh(id, w, h, l, x, y, z, colorHex, memo, weight) {
+        function createCargoMesh(id, w, h, l, x, y, z, colorHex, memo, weight, noStack) {
             let colorVal = typeof colorHex === 'string' ? parseInt(colorHex, 16) : colorHex;
             if (isNaN(colorVal)) colorVal = 0xf87171;
 
@@ -521,7 +534,7 @@
             });
             const mesh = new THREE.Mesh(geo, mat);
             mesh.position.set(x, y, z);
-            mesh.userData = { id, w, h, l, colorHex, memo, weight };
+            mesh.userData = { id, w, h, l, colorHex, memo, weight, noStack };
 
             const edges = new THREE.EdgesGeometry(geo);
             const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1, transparent: true, opacity: 0.8 }));
@@ -532,7 +545,8 @@
 
             const labelEl = document.createElement('div');
             labelEl.className = 'html-label';
-            labelEl.innerHTML = `<span class="html-label-memo">${escapeHTML(memo || '荷物')}</span>`;
+            const noStackBadgeHtml = noStack ? '<span class="html-label-nostack">⚠️上積不可</span>' : '';
+            labelEl.innerHTML = `${noStackBadgeHtml}<span class="html-label-memo">${escapeHTML(memo || '荷物')}</span>`;
             labelOverlay.appendChild(labelEl);
 
             const lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -541,7 +555,7 @@
             lineEl.setAttribute('stroke-dasharray', '2,2');
             labelSvg.appendChild(lineEl);
 
-            const cargoObj = { id, mesh, w, h, l, colorHex, memo, weight, labelEl, lineEl };
+            const cargoObj = { id, mesh, w, h, l, colorHex, memo, weight, noStack, labelEl, lineEl };
             loadedCargos.push(cargoObj);
 
             return cargoObj;
@@ -594,7 +608,8 @@
                 z: cargo.mesh.position.z,
                 color: cargo.colorHex,
                 memo: cargo.memo,
-                weight: cargo.weight
+                weight: cargo.weight,
+                noStack: cargo.noStack
             }));
 
             try {
@@ -637,7 +652,7 @@
 
             if (data.cargos && Array.isArray(data.cargos)) {
                 data.cargos.forEach(item => {
-                    createCargoMesh(item.id, item.w, item.h, item.l, item.x, item.y, item.z, item.color, item.memo, item.weight);
+                    createCargoMesh(item.id, item.w, item.h, item.l, item.x, item.y, item.z, item.color, item.memo, item.weight, !!item.noStack);
                 });
             }
 
@@ -667,11 +682,13 @@
                 li.className = 'cargo-item' + (selectedObject === cargo.mesh ? ' selected' : '');
                 
                 let deleteBtnHtml = (isMobile || isLocked) ? '' : '<button class="btn-item-delete" title="削除">🗑️</button>';
+                const noStackItemBadge = cargo.noStack ? '<span class="badge-nostack">⚠️上積不可</span>' : '';
                 
                 li.innerHTML = `
                     <div class="cargo-item-info">
                         <span class="cargo-item-name">
                             ${escapeHTML(cargo.memo || '荷物')} 
+                            ${noStackItemBadge}
                             <span class="status-badge ${inTruck ? 'badge-loaded' : 'badge-unloaded'}">
                                 ${inTruck ? '荷台' : '仮置き'}
                             </span>
@@ -934,13 +951,14 @@
             if (isLocked) return;
             const memo = document.getElementById('cargo-memo').value || '荷物';
             const weight = parseFloat(document.getElementById('cargo-weight').value) || 0;
+            const noStack = document.getElementById('cargo-nostack').checked;
             const w = parseFloat(document.getElementById('cargo-w').value);
             const h = parseFloat(document.getElementById('cargo-h').value);
             const l = parseFloat(document.getElementById('cargo-l').value);
             const colorHex = document.getElementById('cargo-color').value;
 
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, w, h, l, -(currentTruck.w / 2 + 4), h / 2, 0, colorHex, memo, weight);
+            const cargoObj = createCargoMesh(newId, w, h, l, -(currentTruck.w / 2 + 4), h / 2, 0, colorHex, memo, weight, noStack);
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
@@ -991,7 +1009,7 @@
         document.getElementById('preset-las3000').addEventListener('click', () => {
             if (isLocked) return;
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 2.4, 0.5, 6.0, -(currentTruck.w / 2 + 4), 0.25, 0, '0xf87171', 'ラス3000㎡', 3000);
+            const cargoObj = createCargoMesh(newId, 2.4, 0.5, 6.0, -(currentTruck.w / 2 + 4), 0.25, 0, '0xf87171', 'ラス3000㎡', 3000, false);
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
@@ -999,7 +1017,7 @@
         document.getElementById('preset-las5000').addEventListener('click', () => {
             if (isLocked) return;
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 2.4, 0.8, 9.6, -(currentTruck.w / 2 + 4), 0.4, 0, '0xf87171', 'ラス5000㎡', 5000);
+            const cargoObj = createCargoMesh(newId, 2.4, 0.8, 9.6, -(currentTruck.w / 2 + 4), 0.4, 0, '0xf87171', 'ラス5000㎡', 5000, false);
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
