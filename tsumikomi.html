@@ -2,489 +2,946 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D 荷物シミュレーター</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3Dトラック積載シミュレーター (クラウド同期対応)</title>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
+        body { margin: 0; padding: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; }
+        
+        #ship-header {
+            background: #0f172a; color: white; padding: 8px 15px; display: flex;
+            align-items: center; justify-content: space-between; border-bottom: 3px solid #0284c7;
+            position: relative; z-index: 200; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            height: 45px; box-sizing: border-box;
         }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            overflow: hidden;
-            background-color: #f4f6f8;
-            color: #333;
+        .btn-back {
+            color: #94a3b8; text-decoration: none; font-size: 11px; font-weight: bold;
+            background: #1e293b; padding: 5px 10px; border-radius: 4px; border: 1px solid #334155;
+            transition: background 0.2s; white-space: nowrap;
         }
-        #app-container {
-            display: flex;
-            width: 100vw;
-            height: 100vh;
+        .btn-back:hover { background: #334155; color: #ffffff; }
+        .ship-info { text-align: center; display: flex; align-items: center; gap: 8px; }
+        .ship-date { font-size: 13px; color: #cbd5e1; }
+        .ship-dest { font-size: 18px; font-weight: bold; color: #fde047; letter-spacing: 0.5px; }
+
+        .read-only-badge {
+            background: #e11d48; color: white; font-size: 10px; font-weight: bold;
+            padding: 2px 6px; border-radius: 10px; display: none; white-space: nowrap;
         }
-        #canvas-container {
-            flex: 1;
-            height: 100%;
-            position: relative;
+
+        #control-panel {
+            position: absolute; top: 55px; left: 10px;
+            background: rgba(255, 255, 255, 0.98); padding: 15px;
+            border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            z-index: 100; width: 300px; max-height: calc(90vh - 60px); overflow-y: auto;
         }
-        #canvas3d {
-            width: 100%;
-            height: 100%;
-            display: block;
+        h1 { font-size: 16px; margin: 0 0 10px 0; color: #333; border-bottom: 2px solid #ef4444; padding-bottom: 5px; }
+        .input-group { margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+        label { font-size: 12px; color: #555; width: 100px; }
+        input, select { padding: 4px 8px; font-size: 12px; border: 1px solid #ccc; border-radius: 4px; width: 150px; box-sizing: border-box; }
+        
+        #cargo-memo { border: 1px solid #3b82f6; background-color: #eff6ff; }
+        #cargo-weight { border: 1px solid #f59e0b; background-color: #fffbeb; font-weight: bold; }
+        #label-mode { border: 1px solid #10b981; background-color: #ecfdf5; font-weight: bold; }
+
+        .preset-section {
+            background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;
+            padding: 8px; margin-bottom: 12px;
         }
-        #sidebar {
-            width: 340px;
-            height: 100%;
-            background: #ffffff;
-            border-left: 1px solid #e1e4e8;
-            display: flex;
-            flex-direction: column;
-            box-shadow: -2px 0 10px rgba(0,0,0,0.05);
-            z-index: 10;
-        }
-        .sidebar-header {
-            padding: 16px;
-            background: #24292e;
-            color: #ffffff;
-            font-size: 1.1rem;
-            font-weight: bold;
-        }
-        .sidebar-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px;
-        }
-        .section-title {
-            font-size: 0.9rem;
-            font-weight: bold;
-            color: #586069;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .cargo-preset-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-            margin-bottom: 20px;
-        }
+        .preset-title { font-size: 11px; font-weight: bold; color: #475569; margin-bottom: 6px; }
+        .preset-buttons { display: flex; flex-direction: column; gap: 6px; }
         .btn-preset {
-            padding: 10px 8px;
-            border: 1px solid #d1d5da;
-            border-radius: 6px;
-            background: #fff;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 600;
-            transition: all 0.2s;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
+            padding: 6px 10px; background-color: #ef4444; color: white; border: none;
+            border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer;
+            text-align: left; transition: background 0.2s; display: flex; justify-content: space-between; align-items: center;
         }
-        .btn-preset:hover {
-            border-color: #0366d6;
-            background: #f1f8ff;
-            color: #0366d6;
+        .btn-preset:hover { background-color: #dc2626; }
+        .btn-preset span { font-size: 10px; opacity: 0.9; }
+
+        .btn-add {
+            width: 100%; padding: 8px; background-color: #ef4444; color: white;
+            border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 6px;
+            font-size: 12px; transition: background 0.2s;
         }
-        .color-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
+        .btn-add:hover { background-color: #dc2626; }
+
+        .btn-unload-all {
+            width: 100%; padding: 8px; background-color: #64748b; color: white;
+            border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 8px;
+            font-size: 12px; transition: background 0.2s;
         }
-        .cargo-list {
-            list-style: none;
-            margin-bottom: 20px;
-        }
-        .cargo-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 12px;
-            background: #f6f8fa;
-            border: 1px solid #e1e4e8;
-            border-radius: 6px;
-            margin-bottom: 6px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .cargo-item:hover {
-            background: #edf2f7;
-        }
-        .cargo-item.selected {
-            border-color: #0366d6;
-            background: #e6f1fe;
-        }
-        .cargo-info {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.85rem;
-        }
-        .sidebar-footer {
-            padding: 16px;
-            border-top: 1px solid #e1e4e8;
-            background: #fafbfc;
-        }
+        .btn-unload-all:hover { background-color: #475569; }
+
         .btn-delete {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 6px;
-            background: #d73a49;
-            color: #fff;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s, opacity 0.2s;
-            opacity: 0.5;
-            pointer-events: none;
+            width: 100%; padding: 8px; background-color: #cbd5e1; color: #64748b;
+            border: none; border-radius: 4px; font-weight: bold; cursor: not-allowed; margin-top: 8px;
+            font-size: 12px; transition: all 0.2s;
         }
-        .btn-delete.active {
-            opacity: 1;
-            pointer-events: auto;
+        .btn-delete.active { background-color: #e53e3e !important; color: white !important; cursor: pointer !important; }
+        .btn-delete.active:hover { background-color: #c53030 !important; }
+
+        #list-panel {
+            position: absolute; top: 55px; right: 10px;
+            background: rgba(255, 255, 255, 0.98); padding: 12px;
+            border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            z-index: 100; width: 280px; max-height: calc(85vh - 60px); display: flex; flex-direction: column;
         }
-        .btn-delete.active:hover {
-            background: #cb2431;
+        .summary-box {
+            background: #1e293b; color: white; padding: 8px; border-radius: 6px;
+            text-align: center; margin-bottom: 8px;
         }
-        #summary-panel {
-            position: absolute;
-            top: 16px;
-            left: 16px;
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(4px);
-            padding: 12px 16px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            font-size: 0.85rem;
-            pointer-events: none;
+        .summary-title { font-size: 10px; color: #94a3b8; margin-bottom: 2px; }
+        .summary-weight { font-size: 18px; font-weight: bold; color: #38bdf8; }
+
+        .cargo-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+        .cargo-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 6px 8px; border-bottom: 1px solid #e2e8f0; font-size: 12px;
+            cursor: pointer; border-radius: 4px; transition: background 0.1s;
+        }
+        .cargo-item:hover { background-color: #f1f5f9; }
+        .cargo-item.selected { background-color: #e0f2fe; border-left: 4px solid #0284c7; }
+        .cargo-item-info { display: flex; flex-direction: column; gap: 2px; }
+        .cargo-item-name { font-weight: bold; color: #1e293b; display: flex; align-items: center; gap: 4px; }
+        .cargo-item-detail { color: #64748b; font-size: 11px; }
+        
+        .status-badge { font-size: 9px; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
+        .badge-loaded { background: #dcfce7; color: #15803d; }
+        .badge-unloaded { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
+
+        .btn-item-delete {
+            background: none; border: none; color: #ef4444; cursor: pointer;
+            padding: 4px; border-radius: 4px; font-size: 14px;
+        }
+        .btn-item-delete:hover { background-color: #fee2e2; }
+
+        .help-text { font-size: 11px; color: #666; margin-top: 10px; line-height: 1.4; border-top: 1px dashed #ddd; padding-top: 8px; }
+
+        .html-label {
+            position: absolute; z-index: 50; color: #000;
+            background: rgba(255, 255, 255, 0.95); padding: 4px 8px;
+            border: 2px solid #334155; border-radius: 6px; font-size: 11px;
+            font-weight: bold; pointer-events: none; white-space: nowrap;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.25); text-align: center;
+            line-height: 1.3; transform: translate(-50%, -100%); display: none;
+        }
+        .html-label::after {
+            content: ''; position: absolute; bottom: -8px; left: 50%;
+            transform: translateX(-50%); border-width: 8px 8px 0;
+            border-style: solid; border-color: #334155 transparent; display: block; width: 0;
+        }
+        .html-label-memo { color: #1e3a8a; border-bottom: 1px dashed #93c5fd; padding-bottom: 2px; margin-bottom: 2px; font-size: 12px; display: block; }
+        .html-label-weight { color: #d97706; font-weight: bold; margin-left: 4px; }
+
+        @media screen and (max-width: 768px) {
+            #ship-header { padding: 5px 10px; height: 40px; }
+            .btn-back { font-size: 10px; padding: 4px 8px; }
+            .ship-date { font-size: 11px; }
+            .ship-dest { font-size: 15px; }
+
+            #list-panel {
+                top: 48px; right: 8px; width: calc(100% - 16px);
+                max-width: 340px; max-height: 180px;
+                background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(4px);
+                padding: 8px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            }
+            .summary-box { padding: 4px 8px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; }
+            .summary-title { font-size: 10px; margin: 0; }
+            .summary-weight { font-size: 15px; }
+
+            .cargo-item { padding: 4px 6px; }
+            .cargo-item-name { font-size: 11px; }
+            .cargo-item-detail { font-size: 10px; }
+
+            .html-label { padding: 3px 6px; font-size: 10px; border-width: 1.5px; }
+            .html-label-memo { font-size: 11px; }
         }
     </style>
-
-    <!-- Three.js & OrbitControls -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
 <body>
 
-<div id="app-container">
-    <div id="canvas-container">
-        <canvas id="canvas3d"></canvas>
-        <div id="summary-panel">
-            <strong>積載サマリー</strong><br>
-            荷物数: <span id="summary-count">0</span> 個<br>
-            総重量: <span id="summary-weight">0</span> kg
+    <div id="ship-header">
+        <a href="index.html" class="btn-back">← 戻る</a>
+        <div class="ship-info">
+            <span id="display-date" class="ship-date">----/--/--</span>
+            <span id="display-dest" class="ship-dest">-----便</span>
+            <span id="read-only-tag" class="read-only-badge">👁️ 閲覧</span>
         </div>
+        <div style="width: 40px;"></div>
     </div>
 
-    <div id="sidebar">
-        <div class="sidebar-header">📦 荷物管理</div>
+    <div id="control-panel">
+        <h1>🚚 車種・積み荷の設定</h1>
         
-        <div class="sidebar-content">
-            <div class="section-title">荷物の追加</div>
-            <div class="cargo-preset-grid" id="preset-buttons"></div>
-
-            <div class="section-title">📦 全荷物</div>
-            <ul class="cargo-list" id="cargo-list"></ul>
+        <div class="input-group" style="background: #fff5f5; padding: 6px; border-radius: 4px; border: 1px solid #fed7d7; margin-bottom: 12px;">
+            <label style="font-weight: bold; color: #c53030;">🚚 トラック種別:</label>
+            <select id="truck-type" style="border: 1px solid #feb2b2; font-weight: bold;">
+                <option value="4t_flat">4t 平 (6.2m)</option>
+                <option value="4t_wing">4t ウィング (6.2m)</option>
+                <option value="10t_flat">10t 平 (9.6m)</option>
+                <option value="10t_wing" selected>10t ウィング (9.6m)</option>
+                <option value="20t_trailer">20t ウィングトレーラー (13m)</option>
+            </select>
         </div>
 
-        <div class="sidebar-footer">
-            <button id="delete-btn" class="btn-delete" disabled>🗑️ 選択した荷物を削除</button>
+        <div class="preset-section">
+            <div class="preset-title">⚡ 定番品のクイック追加</div>
+            <div class="preset-buttons">
+                <button class="btn-preset" id="preset-las3000">
+                    ① ラス3000㎡ <span>(6.0m / 3.0t)</span>
+                </button>
+                <button class="btn-preset" id="preset-las5000">
+                    ② ラス5000㎡ <span>(10.0m / 5.0t)</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="input-group" style="margin-bottom: 12px;">
+            <label style="font-weight: bold; color: #059669;">🏷️ ラベル表示:</label>
+            <select id="label-mode">
+                <option value="all">すべて表示</option>
+                <option value="selected" selected>選択中のみ表示</option>
+                <option value="none">すべて非表示</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label style="font-weight: bold; color: #2563eb;">📝 メモ (品名等):</label>
+            <input type="text" id="cargo-memo" value="ラス3000㎡" placeholder="例: ラス3000㎡">
+        </div>
+        <div class="input-group" style="margin-bottom: 12px;">
+            <label style="font-weight: bold; color: #d97706;">⚖️ 重量 (kg):</label>
+            <input type="number" id="cargo-weight" value="3000" step="50" min="0">
+        </div>
+
+        <div class="input-group">
+            <label>幅 (Xm):</label>
+            <input type="number" id="cargo-w" value="2.4" step="0.1" min="0.1" max="2.5">
+        </div>
+        <div class="input-group">
+            <label>高さ (Ym):</label>
+            <input type="number" id="cargo-h" value="0.5" step="0.1" min="0.1" max="2.5">
+        </div>
+        <div class="input-group">
+            <label>長さ (Zm):</label>
+            <input type="number" id="cargo-l" value="6.0" step="0.1" min="0.1" max="13.0">
+        </div>
+        <div class="input-group">
+            <label>積み込み場所:</label>
+            <select id="cargo-color">
+                <option value="0xef4444">衣川 (赤)</option>
+                <option value="0x3b82f6">インター (青)</option>
+                <option value="0xf59e0b">前沢 (オレンジ)</option>
+                <option value="0x10b981">JNT (緑)</option>
+            </select>
+        </div>
+
+        <button id="add-btn" class="btn-add">🚚 手動入力の荷物を追加</button>
+        <button id="unload-all-btn" class="btn-unload-all">📦 荷台の荷物をすべて外に出す</button>
+        <button id="delete-btn" class="btn-delete" disabled>🗑️ 選択した荷物を削除</button>
+
+        <div class="help-text">
+            💡 <strong>操作方法:</strong><br>
+            ・**仮置きエリア**: 文字が書かれた領域へ移動・保管できます<br>
+            ・**角スナップ**: 角や他の荷物に近づくとカチッと吸着<br>
+            ・高さ調整：選択中に [W] で上、[S] で下移動
         </div>
     </div>
-</div>
 
-<script>
-    // --- 荷物プリセットデータ (色を変更) ---
-    // ※ 衣川およびラスを「薄いピンク (#FFC0CB / 0xFFC0CB)」に設定
-    const CARGO_PRESETS = [
-        { name: "衣川", length: 1.0, width: 1.0, height: 1.0, weight: 100, color: 0xFFC0CB, hex: "#FFC0CB" },
-        { name: "ラス 3000", length: 3.0, width: 0.8, height: 0.5, weight: 150, color: 0xFFC0CB, hex: "#FFC0CB" },
-        { name: "ラス 5000", length: 5.0, width: 0.8, height: 0.5, weight: 250, color: 0xFFC0CB, hex: "#FFC0CB" },
-        { name: "標準ケース", length: 0.6, width: 0.4, height: 0.3, weight: 15, color: 0x4A90E2, hex: "#4A90E2" },
-        { name: "大型コンテナ", length: 1.2, width: 1.0, height: 0.8, weight: 50, color: 0x50E3C2, hex: "#50E3C2" },
-        { name: "小型箱", length: 0.4, width: 0.3, height: 0.2, weight: 5, color: 0xF5A623, hex: "#F5A623" }
-    ];
+    <div id="list-panel">
+        <div class="summary-box">
+            <div class="summary-title">積載総重量</div>
+            <div id="total-weight" class="summary-weight">0 kg (0.00 t)</div>
+        </div>
+        <div style="font-size: 11px; font-weight: bold; color: #475569; margin-bottom: 4px;">📦 全荷物 (<span id="cargo-count">0</span>個)</div>
+        <ul id="cargo-list" class="cargo-list"></ul>
+    </div>
 
-    let scene, camera, renderer, controls;
-    let dragObjects = [];
-    let selectedObject = null;
+    <div id="label-overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:40;"></div>
 
-    // レンジ・レイキャスト用
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-    const plane = new THREE.Plane();
-    const intersection = new THREE.Vector3();
-    const offset = new THREE.Vector3();
-    let isDragging = false;
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    init();
-    animate();
-
-    function init() {
-        const container = document.getElementById('canvas-container');
-        const canvas = document.getElementById('canvas3d');
-
-        // シーン
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xf0f2f5);
-
-        // カメラ
-        camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
-        camera.position.set(5, 5, 7);
-
-        // レンダラー
-        renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
-        renderer.setSize(container.clientWidth, container.clientHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.shadowMap.enabled = true;
-
-        // ライト
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
-        scene.add(ambientLight);
-
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(10, 20, 15);
-        dirLight.castShadow = true;
-        scene.add(dirLight);
-
-        // 床（グリッド）
-        const gridHelper = new THREE.GridHelper(10, 20, 0x888888, 0xcccccc);
-        gridHelper.position.y = 0;
-        scene.add(gridHelper);
-
-        // カメラ操作
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-
-        // UIボタン作成
-        renderPresetButtons();
-
-        // イベントリスナー
-        canvas.addEventListener('pointerdown', onPointerDown);
-        canvas.addEventListener('pointermove', onPointerMove);
-        canvas.addEventListener('pointerup', onPointerUp);
-
-        window.addEventListener('resize', onWindowResize);
-
-        // 削除ボタンイベント
-        const deleteBtn = document.getElementById('delete-btn');
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (selectedObject) {
-                    deleteCargo(selectedObject);
-                }
-            });
-        }
-    }
-
-    // プリセット追加ボタン生成
-    function renderPresetButtons() {
-        const container = document.getElementById('preset-buttons');
-        container.innerHTML = '';
-        CARGO_PRESETS.forEach(preset => {
-            const btn = document.createElement('button');
-            btn.className = 'btn-preset';
-            btn.innerHTML = `
-                <span><span class="color-indicator" style="background:${preset.hex}"></span> ${preset.name}</span>
-                <span style="font-size:0.75rem; color:#666;">${preset.length}m×${preset.width}m</span>
-            `;
-            btn.onclick = () => addCargo(preset);
-            container.appendChild(btn);
-        });
-    }
-
-    // 荷物追加処理
-    function addCargo(preset) {
-        const geometry = new THREE.BoxGeometry(preset.length, preset.height, preset.width);
-        const material = new THREE.MeshStandardMaterial({
-            color: preset.color,
-            roughness: 0.4,
-            metalness: 0.1
-        });
-
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-
-        // 初期位置（床の上に置く）
-        mesh.position.set(
-            (Math.random() - 0.5) * 2,
-            preset.height / 2,
-            (Math.random() - 0.5) * 2
-        );
-
-        // 荷物のメタデータ保持
-        mesh.userData = {
-            id: Date.now() + Math.random(),
-            name: preset.name,
-            weight: preset.weight,
-            preset: preset
+        const firebaseConfig = {
+            apiKey: "AIzaSyBTDrCLBRZzzeo_kPe6NEWxbeLJDTKE4Io",
+            authDomain: "truck-simulator-4b11a.firebaseapp.com",
+            projectId: "truck-simulator-4b11a",
+            storageBucket: "truck-simulator-4b11a.firebasestorage.app",
+            messagingSenderId: "131337425448",
+            appId: "1:131337425448:web:b04a7118303e1ccd835b1d"
         };
 
-        // 輪郭線を追加
-        const edges = new THREE.EdgesGeometry(geometry);
-        const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 }));
-        mesh.add(line);
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-        scene.add(mesh);
-        dragObjects.push(mesh);
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth <= 768;
+        if (isMobile) {
+            const controlPanel = document.getElementById('control-panel');
+            if (controlPanel) controlPanel.style.display = 'none';
+            const readOnlyTag = document.getElementById('read-only-tag');
+            if (readOnlyTag) readOnlyTag.style.display = 'inline-block';
+        }
 
-        selectObject(mesh);
-    }
+        const params = new URLSearchParams(window.location.search);
+        const dateVal = params.get('date') || 'default-date';
+        const destVal = params.get('dest') || 'default-dest';
 
-    // 荷物削除処理
-    function deleteCargo(obj) {
-        if (!obj) return;
-        scene.remove(obj);
-        if (obj.geometry) obj.geometry.dispose();
-        if (obj.material) obj.material.dispose();
+        const docId = `${dateVal}_${destVal}`;
+        const cargoDocRef = doc(db, "shipment_cargos", docId);
 
-        dragObjects = dragObjects.filter(item => item !== obj);
-        selectObject(null);
-    }
+        if (dateVal !== 'default-date' && destVal !== 'default-dest') {
+            const [year, month, day] = dateVal.split('-');
+            const dateObj = new Date(year, month - 1, day);
+            const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()];
+            document.getElementById('display-date').textContent = `${year}/${Number(month)}/${Number(day)}（${dayOfWeek}）`;
+            document.getElementById('display-dest').textContent = destVal;
+        }
 
-    // 荷物の選択状態変更
-    function selectObject(obj) {
-        // 全体の発光をクリア
-        for (let item of dragObjects) {
-            if (item.material && item.material.emissive) {
-                item.material.emissive.set(0x000000);
+        const TRUCK_SIZES = {
+            "4t_flat":    { w: 2.4, h: 0.8, l: 6.2 },
+            "4t_wing":    { w: 2.4, h: 2.4, l: 6.2 },
+            "10t_flat":   { w: 2.4, h: 0.8, l: 9.6 },
+            "10t_wing":   { w: 2.4, h: 2.5, l: 9.6 },
+            "20t_trailer":{ w: 2.4, h: 2.5, l: 13.0 }
+        };
+
+        let currentTruckType = "10t_wing";
+        let currentTruck = TRUCK_SIZES[currentTruckType];
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f2f5);
+
+        const headerHeight = () => document.getElementById('ship-header').offsetHeight || 45;
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / (window.innerHeight - headerHeight()), 0.1, 1000);
+        camera.position.set(12, 10, 16); 
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight - headerHeight());
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true; 
+        controls.target.set(0, 1.15, 0); 
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+        dirLight.position.set(15, 25, 20);
+        scene.add(dirLight);
+        scene.add(new THREE.GridHelper(40, 40));
+
+        let truckGroup = new THREE.Group();
+        scene.add(truckGroup);
+
+        function updateTruckGeometry() {
+            while(truckGroup.children.length > 0){ 
+                truckGroup.remove(truckGroup.children[0]); 
+            }
+
+            const truckGeo = new THREE.BoxGeometry(currentTruck.w, currentTruck.h, currentTruck.l);
+            const truckMat = new THREE.MeshBasicMaterial({ color: 0x0284c7, wireframe: true, transparent: true, opacity: 0.4 });
+            const truckMesh = new THREE.Mesh(truckGeo, truckMat);
+            truckMesh.position.set(0, currentTruck.h / 2, 0);
+            truckGroup.add(truckMesh);
+
+            const floorGeo = new THREE.PlaneGeometry(currentTruck.w, currentTruck.l);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x475569, side: THREE.DoubleSide });
+            const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+            floorMesh.rotation.x = -Math.PI / 2;
+            floorMesh.position.set(0, 0.005, 0);
+            truckGroup.add(floorMesh);
+
+            const cabWidth = currentTruck.w;
+            const cabHeight = Math.max(currentTruck.h, 2.2);
+            const cabLength = 1.8;
+            const cabZ = -currentTruck.l / 2 - cabLength / 2;
+            const halfHeight = cabHeight / 2;
+
+            const cabBottomGeo = new THREE.BoxGeometry(cabWidth, halfHeight, cabLength);
+            const cabBottomMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.3 }); 
+            const cabBottomMesh = new THREE.Mesh(cabBottomGeo, cabBottomMat);
+            cabBottomMesh.position.set(0, halfHeight / 2, cabZ);
+            truckGroup.add(cabBottomMesh);
+
+            const cabTopGeo = new THREE.BoxGeometry(cabWidth, halfHeight, cabLength);
+            const cabTopMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.3 }); 
+            const cabTopMesh = new THREE.Mesh(cabTopGeo, cabTopMat);
+            cabTopMesh.position.set(0, halfHeight + halfHeight / 2, cabZ);
+            truckGroup.add(cabTopMesh);
+
+            const glassGeo = new THREE.PlaneGeometry(cabWidth * 0.85, cabHeight * 0.35);
+            const glassMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
+            const glassMesh = new THREE.Mesh(glassGeo, glassMat);
+            glassMesh.position.set(0, cabHeight * 0.65, cabZ - cabLength / 2 - 0.01);
+            truckGroup.add(glassMesh);
+
+            const lightGeo = new THREE.BoxGeometry(0.4, 0.25, 0.1);
+            const lightMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+            const leftLight = new THREE.Mesh(lightGeo, lightMat);
+            leftLight.position.set(-cabWidth * 0.35, cabHeight * 0.2, cabZ - cabLength / 2 - 0.02);
+            const rightLight = new THREE.Mesh(lightGeo, lightMat);
+            rightLight.position.set(cabWidth * 0.35, cabHeight * 0.2, cabZ - cabLength / 2 - 0.02);
+            truckGroup.add(leftLight);
+            truckGroup.add(rightLight);
+
+            const rearGeo = new THREE.BoxGeometry(currentTruck.w, 0.4, 0.1);
+            const rearMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db });
+            const rearMesh = new THREE.Mesh(rearGeo, rearMat);
+            rearMesh.position.set(0, 0.2, currentTruck.l / 2 + 0.05);
+            truckGroup.add(rearMesh);
+
+            const tailLightGeo = new THREE.BoxGeometry(0.3, 0.15, 0.05);
+            const tailLightMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+            const leftTail = new THREE.Mesh(tailLightGeo, tailLightMat);
+            leftTail.position.set(-currentTruck.w * 0.4, 0.15, currentTruck.l / 2 + 0.11);
+            const rightTail = new THREE.Mesh(tailLightGeo, tailLightMat);
+            rightTail.position.set(currentTruck.w * 0.4, 0.15, currentTruck.l / 2 + 0.11);
+            truckGroup.add(leftTail);
+            truckGroup.add(rightTail);
+
+            updateStorageArea();
+        }
+
+        function createStorageTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.fillStyle = '#cbd5e1';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 16;
+            ctx.setLineDash([30, 20]);
+            ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+            
+            ctx.fillStyle = '#1e293b';
+            ctx.font = 'bold 42px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('📦 仮 置 き エ リ ア', 0, -30);
+            
+            ctx.font = 'bold 32px sans-serif';
+            ctx.fillStyle = '#dc2626';
+            ctx.fillText('⬅️ 前 (運転席側)  後 (リア側) ➡️', 0, 40);
+            ctx.restore();
+            
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        let storageMesh;
+        function updateStorageArea() {
+            if (storageMesh) scene.remove(storageMesh);
+            const storageGeo = new THREE.PlaneGeometry(6, currentTruck.l);
+            const storageMat = new THREE.MeshBasicMaterial({ 
+                map: createStorageTexture(),
+                side: THREE.DoubleSide, 
+                transparent: true, 
+                opacity: 0.85 
+            });
+            storageMesh = new THREE.Mesh(storageGeo, storageMat);
+            storageMesh.rotation.x = -Math.PI / 2;
+            storageMesh.position.set(-(currentTruck.w / 2 + 4), 0.01, 0);
+            scene.add(storageMesh);
+        }
+
+        updateTruckGeometry();
+
+        let loadedCargos = []; 
+        const dragObjects = [];  
+        let isRemoteUpdating = false;
+
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let selectedObject = null; 
+        let isSnapped = false;
+
+        const labelOverlay = document.getElementById('label-overlay');
+        const cargoListEl = document.getElementById('cargo-list');
+        const totalWeightEl = document.getElementById('total-weight');
+        const cargoCountEl = document.getElementById('cargo-count');
+
+        function escapeHTML(str) {
+            return String(str).replace(/[&<>"']/g, function(m) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+            });
+        }
+
+        function createCargoMesh(id, w, h, l, x, y, z, colorHex, memo, weight) {
+            let colorVal = typeof colorHex === 'string' ? parseInt(colorHex, 16) : colorHex;
+            if (isNaN(colorVal)) colorVal = 0xef4444;
+
+            const geo = new THREE.BoxGeometry(w, h, l);
+            const mat = new THREE.MeshStandardMaterial({ 
+                color: colorVal, 
+                roughness: 0.4,
+                metalness: 0.1
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, y, z);
+            mesh.userData = { id, w, h, l, colorHex, memo, weight };
+
+            const edges = new THREE.EdgesGeometry(geo);
+            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 }));
+            mesh.add(line);
+
+            scene.add(mesh);
+            dragObjects.push(mesh);
+
+            const labelEl = document.createElement('div');
+            labelEl.className = 'html-label';
+            labelEl.innerHTML = `<span class="html-label-memo">${escapeHTML(memo || '荷物')}</span>${w.toFixed(1)}×${h.toFixed(1)}×${l.toFixed(1)}m<span class="html-label-weight">${weight}kg</span>`;
+            labelOverlay.appendChild(labelEl);
+
+            const cargoObj = { id, mesh, w, h, l, colorHex, memo, weight, labelEl };
+            loadedCargos.push(cargoObj);
+
+            return cargoObj;
+        }
+
+        async function saveToCloud() {
+            if (isRemoteUpdating || isMobile) return;
+
+            const cargoDataList = loadedCargos.map(cargo => ({
+                id: cargo.id,
+                w: cargo.w,
+                h: cargo.h,
+                l: cargo.l,
+                x: cargo.mesh.position.x,
+                y: cargo.mesh.position.y,
+                z: cargo.mesh.position.z,
+                color: cargo.colorHex,
+                memo: cargo.memo,
+                weight: cargo.weight
+            }));
+
+            try {
+                await setDoc(cargoDocRef, {
+                    truckType: currentTruckType,
+                    cargos: cargoDataList,
+                    updatedAt: new Date().toISOString()
+                });
+            } catch (e) {
+                console.error("Cloud Save Error: ", e);
             }
         }
 
-        const deleteBtn = document.getElementById('delete-btn');
+        onSnapshot(cargoDocRef, (docSnap) => {
+            if (!docSnap.exists()) return;
 
-        if (obj) {
-            selectedObject = obj;
-            if (selectedObject.material && selectedObject.material.emissive) {
-                selectedObject.material.emissive.set(0x331111);
+            isRemoteUpdating = true;
+            const data = docSnap.data();
+
+            if (data.truckType && data.truckType !== currentTruckType) {
+                currentTruckType = data.truckType;
+                currentTruck = TRUCK_SIZES[currentTruckType];
+                const truckSelect = document.getElementById('truck-type');
+                if (truckSelect) truckSelect.value = currentTruckType;
+                updateTruckGeometry();
             }
-            if (deleteBtn) {
-                deleteBtn.disabled = false;
-                deleteBtn.removeAttribute('disabled');
-                deleteBtn.classList.add('active');
-                deleteBtn.style.pointerEvents = 'auto';
-                deleteBtn.style.opacity = '1';
+
+            loadedCargos.forEach(c => {
+                scene.remove(c.mesh);
+                if (c.labelEl) c.labelEl.remove();
+            });
+            loadedCargos = [];
+            dragObjects.length = 0;
+
+            if (data.cargos && Array.isArray(data.cargos)) {
+                data.cargos.forEach(item => {
+                    createCargoMesh(item.id, item.w, item.h, item.l, item.x, item.y, item.z, item.color, item.memo, item.weight);
+                });
             }
-        } else {
-            selectedObject = null;
-            if (deleteBtn) {
-                deleteBtn.disabled = true;
-                deleteBtn.setAttribute('disabled', 'true');
-                deleteBtn.classList.remove('active');
-                deleteBtn.style.pointerEvents = 'none';
-                deleteBtn.style.opacity = '0.5';
+
+            selectObject(null);
+            isRemoteUpdating = false;
+        });
+
+        function isInsideTruck(cargo) {
+            const pos = cargo.mesh.position;
+            const inX = Math.abs(pos.x) <= (currentTruck.w / 2 + 0.2);
+            const inZ = Math.abs(pos.z) <= (currentTruck.l / 2 + 0.2);
+            return inX && inZ;
+        }
+
+        function updateSummaryAndList() {
+            let totalWeight = 0;
+            cargoListEl.innerHTML = '';
+
+            loadedCargos.forEach((cargo) => {
+                const inTruck = isInsideTruck(cargo);
+                if (inTruck) {
+                    totalWeight += cargo.weight;
+                }
+
+                const li = document.createElement('li');
+                li.className = 'cargo-item' + (selectedObject === cargo.mesh ? ' selected' : '');
+                
+                let deleteBtnHtml = isMobile ? '' : '<button class="btn-item-delete" title="削除">🗑️</button>';
+                
+                li.innerHTML = `
+                    <div class="cargo-item-info">
+                        <span class="cargo-item-name">
+                            ${escapeHTML(cargo.memo || '荷物')} 
+                            <span class="status-badge ${inTruck ? 'badge-loaded' : 'badge-unloaded'}">
+                                ${inTruck ? '荷台' : '仮置き'}
+                            </span>
+                        </span>
+                        <span class="cargo-item-detail">${cargo.weight}kg | ${cargo.w.toFixed(1)}m × ${cargo.h.toFixed(1)}m × ${cargo.l.toFixed(1)}m</span>
+                    </div>
+                    ${deleteBtnHtml}
+                `;
+
+                li.addEventListener('click', (e) => {
+                    if (e.target.classList.contains('btn-item-delete')) return;
+                    selectObject(cargo.mesh);
+                });
+
+                if (!isMobile) {
+                    const delBtnEl = li.querySelector('.btn-item-delete');
+                    if (delBtnEl) {
+                        delBtnEl.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            deleteCargo(cargo.mesh);
+                        });
+                    }
+                }
+
+                cargoListEl.appendChild(li);
+            });
+
+            cargoCountEl.textContent = loadedCargos.length;
+            const tons = (totalWeight / 1000).toFixed(2);
+            totalWeightEl.textContent = `${totalWeight.toLocaleString()} kg (${tons} t)`;
+        }
+
+        function updateLabelsVisibility() {
+            const labelModeEl = document.getElementById('label-mode');
+            const mode = isMobile ? 'all' : (labelModeEl ? labelModeEl.value : 'selected');
+            for (let cargo of loadedCargos) {
+                const element = cargo.labelEl;
+                if (!element) continue;
+                if (mode === 'all') element.style.display = 'block';
+                else if (mode === 'selected') element.style.display = (selectedObject && cargo.mesh === selectedObject) ? 'block' : 'none';
+                else if (mode === 'none') element.style.display = 'none';
             }
         }
-        updateSummaryAndList();
-    }
 
-    // 3D空間クリック / ドラッグ開始
-    function onPointerDown(event) {
-        if (event.target.tagName !== 'CANVAS') return;
+        function selectObject(obj) {
+            for(let item of dragObjects) item.material.emissive.set(0x000000);
 
-        const rect = renderer.domElement.getBoundingClientRect();
-        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            const deleteBtn = document.getElementById('delete-btn');
 
-        raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(dragObjects, true);
+            if (obj) {
+                selectedObject = obj;
+                selectedObject.material.emissive.set(0x331111); 
+                if (deleteBtn) {
+                    deleteBtn.removeAttribute('disabled');
+                    deleteBtn.disabled = false;
+                    deleteBtn.classList.add('active');
+                }
+            } else {
+                selectedObject = null;
+                if (deleteBtn) {
+                    deleteBtn.setAttribute('disabled', 'true');
+                    deleteBtn.disabled = true;
+                    deleteBtn.classList.remove('active');
+                }
+            }
+            updateLabelsVisibility();
+            updateSummaryAndList();
+        }
 
-        if (intersects.length > 0) {
-            let hitObject = intersects[0].object;
-            while (hitObject.parent && !dragObjects.includes(hitObject)) {
-                hitObject = hitObject.parent;
+        function calculateSurfaceY(targetMesh) {
+            const targetW = targetMesh.geometry.parameters.width;
+            const targetH = targetMesh.geometry.parameters.height;
+            const targetL = targetMesh.geometry.parameters.depth;
+
+            let highestY = 0; 
+
+            for (let other of dragObjects) {
+                if (other === targetMesh) continue;
+
+                const otherW = other.geometry.parameters.width;
+                const otherH = other.geometry.parameters.height;
+                const otherL = other.geometry.parameters.depth;
+
+                const overlapX = Math.abs(targetMesh.position.x - other.position.x) < (targetW / 2 + otherW / 2 - 0.05);
+                const overlapZ = Math.abs(targetMesh.position.z - other.position.z) < (targetL / 2 + otherL / 2 - 0.05);
+
+                if (overlapX && overlapZ) {
+                    const topY = other.position.y + (otherH / 2);
+                    if (topY > highestY) {
+                        highestY = topY;
+                    }
+                }
             }
 
-            if (dragObjects.includes(hitObject)) {
-                isDragging = true;
-                selectObject(hitObject);
+            return highestY + (targetH / 2);
+        }
 
-                plane.setFromNormalAndCoplanarPoint(
-                    camera.getWorldDirection(plane.normal).negate(),
-                    selectedObject.position
-                );
+        function applySnapping(targetMesh, posX, posZ) {
+            const targetW = targetMesh.geometry.parameters.width;
+            const targetL = targetMesh.geometry.parameters.depth;
+            const SNAP_THRESHOLD = 0.15;
 
+            let newX = posX;
+            let newZ = posZ;
+            let snappedNow = false;
+
+            const truckMinX = -currentTruck.w / 2 + targetW / 2;
+            const truckMaxX =  currentTruck.w / 2 - targetW / 2;
+            const truckMinZ = -currentTruck.l / 2 + targetL / 2;
+            const truckMaxZ =  currentTruck.l / 2 - targetL / 2;
+
+            if (Math.abs(posX) <= currentTruck.w / 2 + 0.5 && Math.abs(posZ) <= currentTruck.l / 2 + 0.5) {
+                if (Math.abs(newX - truckMinX) < SNAP_THRESHOLD) { newX = truckMinX; snappedNow = true; }
+                else if (Math.abs(newX - truckMaxX) < SNAP_THRESHOLD) { newX = truckMaxX; snappedNow = true; }
+
+                if (Math.abs(newZ - truckMinZ) < SNAP_THRESHOLD) { newZ = truckMinZ; snappedNow = true; }
+                else if (Math.abs(newZ - truckMaxZ) < SNAP_THRESHOLD) { newZ = truckMaxZ; snappedNow = true; }
+
+                for (let other of dragObjects) {
+                    if (other === targetMesh) continue;
+
+                    const otherW = other.geometry.parameters.width;
+                    const otherL = other.geometry.parameters.depth;
+
+                    const snapX_Left  = other.position.x - (otherW / 2) - (targetW / 2);
+                    const snapX_Right = other.position.x + (otherW / 2) + (targetW / 2);
+                    
+                    if (Math.abs(posZ - other.position.z) < (targetL / 2 + otherL / 2)) {
+                        if (Math.abs(newX - snapX_Left) < SNAP_THRESHOLD) { newX = snapX_Left; snappedNow = true; }
+                        else if (Math.abs(newX - snapX_Right) < SNAP_THRESHOLD) { newX = snapX_Right; snappedNow = true; }
+                    }
+
+                    const snapZ_Front = other.position.z - (otherL / 2) - (targetL / 2);
+                    const snapZ_Back  = other.position.z + (otherL / 2) + (targetL / 2);
+
+                    if (Math.abs(posX - other.position.x) < (targetW / 2 + otherW / 2)) {
+                        if (Math.abs(newZ - snapZ_Front) < SNAP_THRESHOLD) { newZ = snapZ_Front; snappedNow = true; }
+                        else if (Math.abs(newZ - snapZ_Back) < SNAP_THRESHOLD) { newZ = snapZ_Back; snappedNow = true; }
+                    }
+                }
+            }
+
+            if (snappedNow && !isSnapped) {
+                targetMesh.material.emissive.set(0x666666);
+                setTimeout(() => {
+                    if (selectedObject === targetMesh) {
+                        targetMesh.material.emissive.set(0x331111);
+                    } else {
+                        targetMesh.material.emissive.set(0x000000);
+                    }
+                }, 120);
+            }
+            isSnapped = snappedNow;
+
+            return { x: newX, z: newZ };
+        }
+
+        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+        const intersection = new THREE.Vector3();
+        const offset = new THREE.Vector3();
+
+        function onPointerDown(event) {
+            if (isMobile) return; 
+            if (event.target.closest('#control-panel') || event.target.closest('#list-panel') || event.target.closest('#ship-header')) return;
+
+            const clickY = event.clientY - headerHeight();
+            const canvasHeight = window.innerHeight - headerHeight();
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(clickY / canvasHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(dragObjects);
+
+            if (intersects.length > 0) {
+                controls.enabled = false; 
+                selectObject(intersects[0].object);
+
+                plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), selectedObject.position);
                 if (raycaster.ray.intersectPlane(plane, intersection)) {
                     offset.copy(intersection).sub(selectedObject.position);
                 }
-                controls.enabled = false;
-            }
-        } else {
-            selectObject(null);
-        }
-    }
-
-    // ドラッグ移動中
-    function onPointerMove(event) {
-        if (!isDragging || !selectedObject) return;
-
-        const rect = renderer.domElement.getBoundingClientRect();
-        mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-        mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-        raycaster.setFromCamera(mouse, camera);
-
-        if (raycaster.ray.intersectPlane(plane, intersection)) {
-            selectedObject.position.copy(intersection.sub(offset));
-            // 床下にいかないようY軸固定（または底面高さに調整）
-            const boxHeight = selectedObject.geometry.parameters.height || 0.5;
-            if (selectedObject.position.y < boxHeight / 2) {
-                selectedObject.position.y = boxHeight / 2;
+            } else {
+                selectObject(null);
             }
         }
-    }
 
-    // ドラッグ終了
-    function onPointerUp() {
-        isDragging = false;
-        controls.enabled = true;
-    }
+        function onPointerMove(event) {
+            if (isMobile || !selectedObject || controls.enabled) return;
 
-    // リスト＆サマリーの更新
-    function updateSummaryAndList() {
-        const countSpan = document.getElementById('summary-count');
-        const weightSpan = document.getElementById('summary-weight');
-        const listUl = document.getElementById('cargo-list');
+            const clickY = event.clientY - headerHeight();
+            const canvasHeight = window.innerHeight - headerHeight();
 
-        countSpan.textContent = dragObjects.length;
-        const totalWeight = dragObjects.reduce((sum, item) => sum + item.userData.weight, 0);
-        weightSpan.textContent = totalWeight;
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(clickY / canvasHeight) * 2 + 1;
 
-        listUl.innerHTML = '';
-        dragObjects.forEach((obj) => {
-            const li = document.createElement('li');
-            li.className = 'cargo-item' + (obj === selectedObject ? ' selected' : '');
-            li.innerHTML = `
-                <div class="cargo-info">
-                    <span class="color-indicator" style="background:${obj.userData.preset.hex}"></span>
-                    <strong>${obj.userData.name}</strong>
-                </div>
-                <span style="font-size:0.8rem; color:#666;">${obj.userData.weight} kg</span>
-            `;
-            li.onclick = (e) => {
-                e.stopPropagation();
-                selectObject(obj);
-            };
-            listUl.appendChild(li);
+            raycaster.setFromCamera(mouse, camera);
+
+            if (raycaster.ray.intersectPlane(plane, intersection)) {
+                const targetPos = intersection.sub(offset);
+                const snapped = applySnapping(selectedObject, targetPos.x, targetPos.z);
+
+                selectedObject.position.x = snapped.x;
+                selectedObject.position.z = snapped.z;
+
+                const surfaceY = calculateSurfaceY(selectedObject);
+                selectedObject.position.y = surfaceY;
+
+                updateSummaryAndList();
+            }
+        }
+
+        function onPointerUp() {
+            if (isMobile) return;
+            if (selectedObject && !controls.enabled) {
+                controls.enabled = true;
+                saveToCloud();
+            }
+        }
+
+        window.addEventListener('pointerdown', onPointerDown);
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
+
+        window.addEventListener('keydown', (e) => {
+            if (isMobile || !selectedObject) return;
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+            const step = 0.1;
+            if (e.key === 'w' || e.key === 'W') {
+                selectedObject.position.y += step;
+                saveToCloud();
+            } else if (e.key === 's' || e.key === 'S') {
+                const targetH = selectedObject.geometry.parameters.height;
+                if (selectedObject.position.y - step >= targetH / 2) {
+                    selectedObject.position.y -= step;
+                    saveToCloud();
+                }
+            }
         });
-    }
 
-    function onWindowResize() {
-        const container = document.getElementById('canvas-container');
-        camera.aspect = container.clientWidth / container.clientHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(container.clientWidth, container.clientHeight);
-    }
+        function deleteCargo(targetMesh) {
+            if (!targetMesh) return;
+            const index = loadedCargos.findIndex(c => c.mesh === targetMesh);
+            if (index !== -1) {
+                const cargo = loadedCargos[index];
+                scene.remove(cargo.mesh);
+                if (cargo.labelEl) cargo.labelEl.remove();
+                
+                const dragIdx = dragObjects.indexOf(cargo.mesh);
+                if (dragIdx !== -1) dragObjects.splice(dragIdx, 1);
+                
+                loadedCargos.splice(index, 1);
+            }
+            selectObject(null);
+            saveToCloud();
+        }
 
-    function animate() {
-        requestAnimationFrame(animate);
-        controls.update();
-        renderer.render(scene, camera);
-    }
-</script>
+        document.getElementById('add-btn').addEventListener('click', () => {
+            const memo = document.getElementById('cargo-memo').value || '荷物';
+            const weight = parseFloat(document.getElementById('cargo-weight').value) || 0;
+            const w = parseFloat(document.getElementById('cargo-w').value);
+            const h = parseFloat(document.getElementById('cargo-h').value);
+            const l = parseFloat(document.getElementById('cargo-l').value);
+            const colorHex = document.getElementById('cargo-color').value;
+
+            const newId = 'cargo_' + Date.now();
+            const cargoObj = createCargoMesh(newId, w, h, l, -(currentTruck.w / 2 + 4), h / 2, 0, colorHex, memo, weight);
+            selectObject(cargoObj.mesh);
+            saveToCloud();
+        });
+
+        document.getElementById('unload-all-btn').addEventListener('click', () => {
+            let offsetZ = -currentTruck.l / 2 + 1;
+            loadedCargos.forEach(cargo => {
+                cargo.mesh.position.set(-(currentTruck.w / 2 + 4), cargo.h / 2, offsetZ);
+                offsetZ += cargo.l + 0.2;
+            });
+            updateSummaryAndList();
+            saveToCloud();
+        });
+
+        document.getElementById('delete-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            if (selectedObject) deleteCargo(selectedObject);
+        });
+
+        document.getElementById('truck-type').addEventListener('change', (e) => {
+            currentTruckType = e.target.value;
+            currentTruck = TRUCK_SIZES[currentTruckType];
+            updateTruckGeometry();
+            saveToCloud();
+        });
+
+        document.getElementById('label-mode').addEventListener('change', () => {
+            updateLabelsVisibility();
+        });
+
+        document.getElementById('preset-las3000').addEventListener('click', () => {
+            const newId = 'cargo_' + Date.now();
+            const cargoObj = createCargoMesh(newId, 2.4, 0.5, 6.0, -(currentTruck.w / 2 + 4), 0.25, 0, '0xef4444', 'ラス3000㎡', 3000);
+            selectObject(cargoObj.mesh);
+            saveToCloud();
+        });
+
+        document.getElementById('preset-las5000').addEventListener('click', () => {
+            const newId = 'cargo_' + Date.now();
+            const cargoObj = createCargoMesh(newId, 2.4, 0.8, 9.6, -(currentTruck.w / 2 + 4), 0.4, 0, '0xef4444', 'ラス5000㎡', 5000);
+            selectObject(cargoObj.mesh);
+            saveToCloud();
+        });
+
+        const tempV = new THREE.Vector3();
+        function updateLabelsPosition() {
+            const widthHalf = window.innerWidth / 2;
+            const heightHalf = (window.innerHeight - headerHeight()) / 2;
+
+            for (let cargo of loadedCargos) {
+                if (!cargo.labelEl || cargo.labelEl.style.display === 'none') continue;
+
+                tempV.copy(cargo.mesh.position);
+                tempV.y += cargo.h / 2; 
+
+                tempV.project(camera);
+
+                if (tempV.z > 1) {
+                    cargo.labelEl.style.opacity = '0';
+                    continue;
+                }
+
+                const x = (tempV.x * widthHalf) + widthHalf;
+                const y = -(tempV.y * heightHalf) + heightHalf + headerHeight();
+
+                cargo.labelEl.style.left = `${x}px`;
+                cargo.labelEl.style.top = `${y}px`;
+                cargo.labelEl.style.opacity = '1';
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            const h = window.innerHeight - headerHeight();
+            camera.aspect = window.innerWidth / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, h);
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            updateLabelsPosition();
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
 </body>
 </html>
