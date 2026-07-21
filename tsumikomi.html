@@ -2,20 +2,20 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>3Dトラック積載シミュレーター (クラウド同期対応)</title>
     <style>
-        body { margin: 0; padding: 0; overflow: hidden; font-family: sans-serif; background-color: #f0f2f5; }
+        body { margin: 0; padding: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background-color: #f0f2f5; }
         
         /* 最上部：出荷情報バナー */
         #ship-header {
             background: #0f172a;
             color: white;
-            padding: 10px 20px;
+            padding: 8px 15px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 4px solid #0284c7;
+            border-bottom: 3px solid #0284c7;
             position: relative;
             z-index: 200;
             box-shadow: 0 2px 10px rgba(0,0,0,0.3);
@@ -25,34 +25,35 @@
         .btn-back {
             color: #94a3b8;
             text-decoration: none;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: bold;
             background: #1e293b;
-            padding: 6px 12px;
+            padding: 5px 10px;
             border-radius: 4px;
             border: 1px solid #334155;
             transition: background 0.2s;
+            white-space: nowrap;
         }
         .btn-back:hover { background: #334155; color: #ffffff; }
-        .ship-info { text-align: center; }
-        .ship-date { font-size: 14px; color: #cbd5e1; margin-right: 15px; }
-        .ship-dest { font-size: 22px; font-weight: bold; color: #fde047; letter-spacing: 1px; }
+        .ship-info { text-align: center; display: flex; align-items: center; gap: 8px; }
+        .ship-date { font-size: 13px; color: #cbd5e1; }
+        .ship-dest { font-size: 18px; font-weight: bold; color: #fde047; letter-spacing: 0.5px; }
 
         /* スマホ用 閲覧モードバッジ */
         .read-only-badge {
             background: #e11d48;
             color: white;
-            font-size: 11px;
+            font-size: 10px;
             font-weight: bold;
-            padding: 3px 8px;
-            border-radius: 12px;
-            margin-left: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
             display: none;
+            white-space: nowrap;
         }
 
-        /* 左側：設定パネル */
+        /* 左側：設定パネル (PC専用) */
         #control-panel {
-            position: absolute; top: 60px; left: 10px;
+            position: absolute; top: 55px; left: 10px;
             background: rgba(255, 255, 255, 0.98); padding: 15px;
             border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
             z-index: 100; width: 300px;
@@ -106,22 +107,22 @@
 
         /* 右側：積載品一覧パネル */
         #list-panel {
-            position: absolute; top: 60px; right: 10px;
-            background: rgba(255, 255, 255, 0.98); padding: 15px;
+            position: absolute; top: 55px; right: 10px;
+            background: rgba(255, 255, 255, 0.98); padding: 12px;
             border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            z-index: 100; width: 290px; max-height: calc(85vh - 60px); display: flex; flex-direction: column;
+            z-index: 100; width: 280px; max-height: calc(85vh - 60px); display: flex; flex-direction: column;
         }
         .summary-box {
-            background: #1e293b; color: white; padding: 10px; border-radius: 6px;
-            text-align: center; margin-bottom: 10px;
+            background: #1e293b; color: white; padding: 8px; border-radius: 6px;
+            text-align: center; margin-bottom: 8px;
         }
-        .summary-title { font-size: 11px; color: #94a3b8; margin-bottom: 2px; }
-        .summary-weight { font-size: 20px; font-weight: bold; color: #38bdf8; }
+        .summary-title { font-size: 10px; color: #94a3b8; margin-bottom: 2px; }
+        .summary-weight { font-size: 18px; font-weight: bold; color: #38bdf8; }
 
         .cargo-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
         .cargo-item {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 8px; border-bottom: 1px solid #e2e8f0; font-size: 12px;
+            padding: 6px 8px; border-bottom: 1px solid #e2e8f0; font-size: 12px;
             cursor: pointer; border-radius: 4px; transition: background 0.1s;
         }
         .cargo-item:hover { background-color: #f1f5f9; }
@@ -144,17 +145,72 @@
 
         .help-text { font-size: 11px; color: #666; margin-top: 10px; line-height: 1.4; border-top: 1px dashed #ddd; padding-top: 8px; }
 
-        /* 3Dラベルスタイル */
+        /* 3Dラベルスタイル (シンプル吹き出し) */
         .html-label {
             position: absolute; z-index: 50; color: #000;
             background: rgba(255, 255, 255, 0.95); padding: 4px 8px;
-            border: 2px solid #4b5563; border-radius: 4px; font-size: 11px;
+            border: 2px solid #334155; border-radius: 6px; font-size: 11px;
             font-weight: bold; pointer-events: none; white-space: nowrap;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.2); text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.25); text-align: center;
             line-height: 1.3; transform: translate(-50%, -100%); display: none;
+        }
+        .html-label::after {
+            content: ''; position: absolute; bottom: -8px; left: 50%;
+            transform: translateX(-50%); border-width: 8px 8px 0;
+            border-style: solid; border-color: #334155 transparent; display: block; width: 0;
         }
         .html-label-memo { color: #1e3a8a; border-bottom: 1px dashed #93c5fd; padding-bottom: 2px; margin-bottom: 2px; font-size: 12px; display: block; }
         .html-label-weight { color: #d97706; font-weight: bold; margin-left: 4px; }
+
+        /* ========================================================= */
+        /* 📱 スマホ専用スタイルの調整 (画面幅 768px 以下) */
+        /* ========================================================= */
+        @media screen and (max-width: 768px) {
+            #ship-header {
+                padding: 5px 10px;
+                height: 40px;
+            }
+            .btn-back { font-size: 10px; padding: 4px 8px; }
+            .ship-date { font-size: 11px; }
+            .ship-dest { font-size: 15px; }
+
+            /* 右側パネルをスマホ用にシンプル化 */
+            #list-panel {
+                top: 48px;
+                right: 8px;
+                width: calc(100% - 16px);
+                max-width: 340px;
+                max-height: 180px;
+                background: rgba(255, 255, 255, 0.92);
+                backdrop-filter: blur(4px);
+                padding: 8px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            }
+            .summary-box {
+                padding: 4px 8px;
+                margin-bottom: 4px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+            .summary-title { font-size: 10px; margin: 0; }
+            .summary-weight { font-size: 15px; }
+
+            .cargo-item {
+                padding: 4px 6px;
+            }
+            .cargo-item-name { font-size: 11px; }
+            .cargo-item-detail { font-size: 10px; }
+
+            /* 3Dラベルのサイズ調整 */
+            .html-label {
+                padding: 3px 6px;
+                font-size: 10px;
+                border-width: 1.5px;
+            }
+            .html-label-memo { font-size: 11px; }
+        }
     </style>
     <!-- Three.js 読み込み -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -164,16 +220,16 @@
 
     <!-- 頂部ヘッダー：日付・便名表示 -->
     <div id="ship-header">
-        <a href="index.html" class="btn-back">← 便選択に戻る</a>
+        <a href="index.html" class="btn-back">← 戻る</a>
         <div class="ship-info">
-            <span id="display-date" class="ship-date">----年--月--日</span>
+            <span id="display-date" class="ship-date">----/--/--</span>
             <span id="display-dest" class="ship-dest">-----便</span>
-            <span id="read-only-tag" class="read-only-badge">👁️ 閲覧モード</span>
+            <span id="read-only-tag" class="read-only-badge">👁️ 閲覧</span>
         </div>
-        <div style="width: 100px;"></div>
+        <div style="width: 40px;"></div>
     </div>
 
-    <!-- 左側：設定パネル -->
+    <!-- 左側：設定パネル (PCでのみ表示) -->
     <div id="control-panel">
         <h1>🚚 車種・積み荷の設定</h1>
         
@@ -257,21 +313,21 @@
     <!-- 右側：積載品一覧＆総重量パネル -->
     <div id="list-panel">
         <div class="summary-box">
-            <div class="summary-title">荷台の積載総重量</div>
+            <div class="summary-title">積載総重量</div>
             <div id="total-weight" class="summary-weight">0 kg (0.00 t)</div>
         </div>
-        <div style="font-size: 13px; font-weight: bold; color: #475569; margin-bottom: 8px;">📦 全荷物一覧 (<span id="cargo-count">0</span>個)</div>
+        <div style="font-size: 11px; font-weight: bold; color: #475569; margin-bottom: 4px;">📦 全荷物 (<span id="cargo-count">0</span>個)</div>
         <ul id="cargo-list" class="cargo-list"></ul>
     </div>
 
     <div id="label-overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:40;"></div>
 
-    <!-- 🔥 Firebase SDK 読み込み (ご自身のキーを適用済み) -->
+    <!-- 🔥 Firebase SDK 読み込み -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 🔑 取得いただいた Firebase 設定を適用
+        // 🔑 Firebase 設定
         const firebaseConfig = {
             apiKey: "AIzaSyBTDrCLBRZzzeo_kPe6NEWxbeLJDTKE4Io",
             authDomain: "truck-simulator-4b11a.firebaseapp.com",
@@ -286,7 +342,7 @@
         const db = getFirestore(app);
 
         // --- 📱 スマホ/モバイル判定 ---
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth <= 768;
         if (isMobile) {
             const controlPanel = document.getElementById('control-panel');
             if (controlPanel) controlPanel.style.display = 'none';
@@ -299,7 +355,7 @@
         const dateVal = params.get('date') || 'default-date';
         const destVal = params.get('dest') || 'default-dest';
 
-        // Firebase上の保存キー（日付と便名でユニークなキーを作成）
+        // Firebase上の保存キー
         const docId = `${dateVal}_${destVal}`;
         const cargoDocRef = doc(db, "shipment_cargos", docId);
 
@@ -307,7 +363,7 @@
             const [year, month, day] = dateVal.split('-');
             const dateObj = new Date(year, month - 1, day);
             const dayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][dateObj.getDay()];
-            document.getElementById('display-date').textContent = `${year}年${Number(month)}月${Number(day)}日（${dayOfWeek}）出荷`;
+            document.getElementById('display-date').textContent = `${year}/${Number(month)}/${Number(day)}（${dayOfWeek}）`;
             document.getElementById('display-dest').textContent = destVal;
         }
 
@@ -326,11 +382,13 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xf0f2f5);
 
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / (window.innerHeight - 45), 0.1, 1000);
+        const headerHeight = () => document.getElementById('ship-header').offsetHeight || 45;
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / (window.innerHeight - headerHeight()), 0.1, 1000);
         camera.position.set(12, 10, 16); 
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight - 45);
+        renderer.setSize(window.innerWidth, window.innerHeight - headerHeight());
         document.body.appendChild(renderer.domElement);
 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -533,7 +591,7 @@
 
         function updateLabelsVisibility() {
             const labelModeEl = document.getElementById('label-mode');
-            const mode = labelModeEl ? labelModeEl.value : 'selected';
+            const mode = isMobile ? 'all' : (labelModeEl ? labelModeEl.value : 'selected');
             for (let cargo of loadedCargos) {
                 const element = cargo.labelEl;
                 if (!element) continue;
@@ -660,9 +718,8 @@
             if (isMobile) return; 
             if (event.target.closest('#control-panel') || event.target.closest('#list-panel') || event.target.closest('#ship-header')) return;
 
-            const headerHeight = document.getElementById('ship-header').offsetHeight || 0;
-            const canvasHeight = window.innerHeight - headerHeight;
-            const clickY = event.clientY - headerHeight;
+            const clickY = event.clientY - headerHeight();
+            const canvasHeight = window.innerHeight - headerHeight();
 
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(clickY / canvasHeight) * 2 + 1;
@@ -686,9 +743,8 @@
         function onPointerMove(event) {
             if (isMobile || !selectedObject || controls.enabled) return;
 
-            const headerHeight = document.getElementById('ship-header').offsetHeight || 0;
-            const canvasHeight = window.innerHeight - headerHeight;
-            const clickY = event.clientY - headerHeight;
+            const clickY = event.clientY - headerHeight();
+            const canvasHeight = window.innerHeight - headerHeight();
 
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(clickY / canvasHeight) * 2 + 1;
@@ -842,7 +898,7 @@
 
             document.getElementById('preset-las5000').addEventListener('click', () => {
                 setInputValues('ラス5000㎡', 5000, 2.4, 0.5, 10.0);
-                tryAddCargo('ラス5000㎡', 5000, 2.4, 0.5, 10.0, '0x10b981');
+                tryAddCargo('ラス5000㎡', 5000, 2.4, 0.5, 10.0, '0x0d9488');
             });
 
             document.getElementById('label-mode').addEventListener('change', updateLabelsVisibility);
@@ -874,9 +930,8 @@
 
         const tempV = new THREE.Vector3();
         function updateLabelPositions() {
-            const headerHeight = document.getElementById('ship-header').offsetHeight || 0;
             const widthHalf = window.innerWidth / 2;
-            const heightHalf = (window.innerHeight - headerHeight) / 2;
+            const heightHalf = (window.innerHeight - headerHeight()) / 2;
 
             for (let cargo of loadedCargos) {
                 const element = cargo.labelEl;
@@ -884,7 +939,7 @@
 
                 cargo.mesh.updateMatrixWorld();
                 tempV.setFromMatrixPosition(cargo.mesh.matrixWorld);
-                tempV.y += (cargo.h / 2) + 0.15; 
+                tempV.y += (cargo.h / 2) + 0.3; // 荷物のすぐ上に配置
 
                 tempV.project(camera);
                 if (tempV.z > 1) {
@@ -895,7 +950,7 @@
                 }
 
                 element.style.left = `${(tempV.x * widthHalf) + widthHalf}px`;
-                element.style.top = `${-(tempV.y * heightHalf) + heightHalf + headerHeight}px`;
+                element.style.top = `${-(tempV.y * heightHalf) + heightHalf + headerHeight()}px`;
             }
         }
 
@@ -908,10 +963,9 @@
         animate();
 
         window.addEventListener('resize', () => {
-            const headerHeight = document.getElementById('ship-header').offsetHeight || 0;
-            camera.aspect = window.innerWidth / (window.innerHeight - headerHeight);
+            camera.aspect = window.innerWidth / (window.innerHeight - headerHeight());
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight - headerHeight);
+            renderer.setSize(window.innerWidth, window.innerHeight - headerHeight());
         });
     </script>
 </body>
