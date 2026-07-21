@@ -76,11 +76,11 @@
         .preset-title { font-size: 11px; font-weight: bold; color: #475569; margin-bottom: 6px; }
         .preset-buttons { display: flex; flex-direction: column; gap: 6px; }
         .btn-preset {
-            padding: 6px 10px; background-color: #0284c7; color: white; border: none;
+            padding: 6px 10px; background-color: #ef4444; color: white; border: none;
             border-radius: 4px; font-size: 11px; font-weight: bold; cursor: pointer;
             text-align: left; transition: background 0.2s; display: flex; justify-content: space-between; align-items: center;
         }
-        .btn-preset:hover { background-color: #0369a1; }
+        .btn-preset:hover { background-color: #dc2626; }
         .btn-preset span { font-size: 10px; opacity: 0.9; }
 
         .btn-add {
@@ -172,13 +172,16 @@
             #list-panel {
                 top: 48px; right: 8px; width: calc(100% - 16px);
                 max-width: 340px; max-height: 180px;
-                background: rgba(255, 255, 255, 0.92);
-                backdrop-filter: blur(4px); padding: 8px;
-                border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(4px);
+                padding: 8px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             }
-            .summary-box { padding: 4px 8px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; }
+            .summary-box {
+                padding: 4px 8px; margin-bottom: 4px; display: flex;
+                align-items: center; justify-content: space-between;
+            }
             .summary-title { font-size: 10px; margin: 0; }
             .summary-weight { font-size: 15px; }
+
             .cargo-item { padding: 4px 6px; }
             .cargo-item-name { font-size: 11px; }
             .cargo-item-detail { font-size: 10px; }
@@ -187,6 +190,7 @@
             .html-label-memo { font-size: 11px; }
         }
     </style>
+    <!-- Three.js 読み込み -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
@@ -203,7 +207,7 @@
         <div style="width: 40px;"></div>
     </div>
 
-    <!-- 左側：設定パネル (PC専用) -->
+    <!-- 左側：設定パネル (PCでのみ表示) -->
     <div id="control-panel">
         <h1>🚚 車種・積み荷の設定</h1>
         
@@ -225,7 +229,7 @@
                 <button class="btn-preset" id="preset-las3000">
                     ① ラス3000㎡ <span>(6.0m / 3.0t)</span>
                 </button>
-                <button class="btn-preset" id="preset-las5000" style="background-color: #0d9488;">
+                <button class="btn-preset" id="preset-las5000">
                     ② ラス5000㎡ <span>(10.0m / 5.0t)</span>
                 </button>
             </div>
@@ -251,24 +255,23 @@
 
         <div class="input-group">
             <label>幅 (Xm):</label>
-            <input type="number" id="cargo-w" value="6.0" step="0.1" min="0.1" max="13.0">
+            <input type="number" id="cargo-w" value="2.4" step="0.1" min="0.1" max="2.5">
         </div>
         <div class="input-group">
             <label>高さ (Ym):</label>
             <input type="number" id="cargo-h" value="0.5" step="0.1" min="0.1" max="2.5">
         </div>
         <div class="input-group">
-            <label>奥行き (Zm):</label>
-            <input type="number" id="cargo-l" value="2.4" step="0.1" min="0.1" max="2.5">
+            <label>長さ (Zm):</label>
+            <input type="number" id="cargo-l" value="6.0" step="0.1" min="0.1" max="13.0">
         </div>
         <div class="input-group">
-            <label>箱の色:</label>
+            <label>積み込み場所:</label>
             <select id="cargo-color">
-                <option value="0x3b82f6">ブルー</option>
-                <option value="0x10b981">グリーン</option>
-                <option value="0xf59e0b">オレンジ</option>
-                <option value="0xef4444">レッド</option>
-                <option value="0x8b5cf6">パープル</option>
+                <option value="0xef4444">衣川 (赤)</option>
+                <option value="0x3b82f6">インター (青)</option>
+                <option value="0xf59e0b">前沢 (オレンジ)</option>
+                <option value="0x10b981">JNT (緑)</option>
             </select>
         </div>
 
@@ -278,7 +281,7 @@
 
         <div class="help-text">
             💡 <strong>操作方法:</strong><br>
-            ・**仮置きエリア**: 奥側の指定領域へ移動・保管できます<br>
+            ・**仮置きエリア**: 文字が書かれた領域へ移動・保管できます<br>
             ・**角スナップ**: 角や他の荷物に近づくとカチッと吸着<br>
             ・高さ調整：選択中に [W] で上、[S] で下移動
         </div>
@@ -296,12 +299,11 @@
 
     <div id="label-overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:40;"></div>
 
-    <!-- 🔥 Firebase SDK 読み込み -->
+    <!-- Firebase SDK 読み込み -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        // 🔑 Firebase 設定
         const firebaseConfig = {
             apiKey: "AIzaSyBTDrCLBRZzzeo_kPe6NEWxbeLJDTKE4Io",
             authDomain: "truck-simulator-4b11a.firebaseapp.com",
@@ -314,7 +316,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- 📱 スマホ/モバイル判定 ---
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth <= 768;
         if (isMobile) {
             const controlPanel = document.getElementById('control-panel');
@@ -338,13 +339,12 @@
             document.getElementById('display-dest').textContent = destVal;
         }
 
-        // --- 3Dシミュレーターメイン処理 (前=左側 / 長さ=X軸) ---
         const TRUCK_SIZES = {
-            "4t_flat":    { length: 6.2,  h: 0.8, width: 2.4 },
-            "4t_wing":    { length: 6.2,  h: 2.4, width: 2.4 },
-            "10t_flat":   { length: 9.6,  h: 0.8, width: 2.4 },
-            "10t_wing":   { length: 9.6,  h: 2.5, width: 2.4 },
-            "20t_trailer":{ length: 13.0, h: 2.5, width: 2.4 }
+            "4t_flat":    { w: 2.4, h: 0.8, l: 6.2 },
+            "4t_wing":    { w: 2.4, h: 2.4, l: 6.2 },
+            "10t_flat":   { w: 2.4, h: 0.8, l: 9.6 },
+            "10t_wing":   { w: 2.4, h: 2.5, l: 9.6 },
+            "20t_trailer":{ w: 2.4, h: 2.5, l: 13.0 }
         };
 
         let currentTruckType = "10t_wing";
@@ -356,7 +356,7 @@
         const headerHeight = () => document.getElementById('ship-header').offsetHeight || 45;
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / (window.innerHeight - headerHeight()), 0.1, 1000);
-        camera.position.set(0, 12, 16); 
+        camera.position.set(12, 10, 16); 
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight - headerHeight());
@@ -372,121 +372,132 @@
         scene.add(dirLight);
         scene.add(new THREE.GridHelper(40, 40));
 
+        // トラック構造体とキャビン・リアゲートのグループ
         let truckGroup = new THREE.Group();
         scene.add(truckGroup);
 
-        // トラック外側の床に表示する「前」「後ろ」のガイド文字看板
-        function createSideSignTexture(text, bgColor, textColor) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 512;
-            canvas.height = 128;
-            const ctx = canvas.getContext('2d');
-
-            ctx.fillStyle = bgColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = 10;
-            ctx.strokeRect(5, 5, canvas.width - 10, canvas.height - 10);
-
-            ctx.fillStyle = textColor;
-            ctx.font = 'bold 54px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-
-            return new THREE.CanvasTexture(canvas);
-        }
-
         function updateTruckGeometry() {
-            // 既存のトラック関連を一旦全削除
             while(truckGroup.children.length > 0){ 
                 truckGroup.remove(truckGroup.children[0]); 
             }
 
-            // 1. トラック外枠ワイヤーフレーム (X軸＝長さ, Y軸＝高さ, Z軸＝幅)
-            const truckGeo = new THREE.BoxGeometry(currentTruck.length, currentTruck.h, currentTruck.width);
-            const truckMat = new THREE.MeshBasicMaterial({ color: 0x334155, wireframe: true, transparent: true, opacity: 0.3 });
+            // 1. 荷台フレーム（ワイヤーフレーム）
+            const truckGeo = new THREE.BoxGeometry(currentTruck.w, currentTruck.h, currentTruck.l);
+            const truckMat = new THREE.MeshBasicMaterial({ color: 0x0284c7, wireframe: true, transparent: true, opacity: 0.4 });
             const truckMesh = new THREE.Mesh(truckGeo, truckMat);
             truckMesh.position.set(0, currentTruck.h / 2, 0);
             truckGroup.add(truckMesh);
 
-            // 2. 荷台底板
-            const floorGeo = new THREE.PlaneGeometry(currentTruck.length, currentTruck.width);
-            const floorMat = new THREE.MeshBasicMaterial({ color: 0xcbd5e1, side: THREE.DoubleSide });
+            // 2. 荷台の床面（グレー）
+            const floorGeo = new THREE.PlaneGeometry(currentTruck.w, currentTruck.l);
+            const floorMat = new THREE.MeshStandardMaterial({ color: 0x475569, side: THREE.DoubleSide });
             const floorMesh = new THREE.Mesh(floorGeo, floorMat);
             floorMesh.rotation.x = -Math.PI / 2;
-            floorMesh.position.set(0, 0.01, 0);
+            floorMesh.position.set(0, 0.005, 0);
             truckGroup.add(floorMesh);
 
-            // 3. 前面（左側: X-方向）のバンパー＆キャビン
-            const frontX = -currentTruck.length / 2;
+            // 3. キャビン（運転席） - 前方向 (-Z側) に配置【ツートンカラー：上半分白・下半分緑】
+            const cabWidth = currentTruck.w;
+            const cabHeight = Math.max(currentTruck.h, 2.2);
+            const cabLength = 1.8;
+            const cabZ = -currentTruck.l / 2 - cabLength / 2;
+            const halfHeight = cabHeight / 2;
 
-            const cabGeo = new THREE.BoxGeometry(0.4, 0.4, currentTruck.width + 0.1);
-            const cabMat = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.3 });
-            const cabMesh = new THREE.Mesh(cabGeo, cabMat);
-            cabMesh.position.set(frontX - 0.2, 0.2, 0);
-            truckGroup.add(cabMesh);
+            // キャビン下部分 (緑)
+            const cabBottomGeo = new THREE.BoxGeometry(cabWidth, halfHeight, cabLength);
+            const cabBottomMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.3 }); 
+            const cabBottomMesh = new THREE.Mesh(cabBottomGeo, cabBottomMat);
+            cabBottomMesh.position.set(0, halfHeight / 2, cabZ);
+            truckGroup.add(cabBottomMesh);
 
-            // 4. 荷物に隠れない「前（FRONT）」看板（トラック左外側の床）
-            const frontSignGeo = new THREE.PlaneGeometry(2.2, 0.8);
-            const frontSignMat = new THREE.MeshBasicMaterial({
-                map: createSideSignTexture('◀ 前 (FRONT)', '#eab308', '#0f172a'),
-                side: THREE.DoubleSide
-            });
-            const frontSignMesh = new THREE.Mesh(frontSignGeo, frontSignMat);
-            frontSignMesh.rotation.x = -Math.PI / 2;
-            frontSignMesh.position.set(frontX - 1.5, 0.02, currentTruck.width / 2 + 1.2);
-            truckGroup.add(frontSignMesh);
+            // キャビン上部分 (白)
+            const cabTopGeo = new THREE.BoxGeometry(cabWidth, halfHeight, cabLength);
+            const cabTopMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.3 }); 
+            const cabTopMesh = new THREE.Mesh(cabTopGeo, cabTopMat);
+            cabTopMesh.position.set(0, halfHeight + halfHeight / 2, cabZ);
+            truckGroup.add(cabTopMesh);
 
-            // 5. 荷物に隠れない「後ろ（REAR）」看板（トラック右外側の床）
-            const rearX = currentTruck.length / 2;
-            const rearSignGeo = new THREE.PlaneGeometry(2.2, 0.8);
-            const rearSignMat = new THREE.MeshBasicMaterial({
-                map: createSideSignTexture('後ろ (REAR) ▶', '#64748b', '#ffffff'),
-                side: THREE.DoubleSide
-            });
-            const rearSignMesh = new THREE.Mesh(rearSignGeo, rearSignMat);
-            rearSignMesh.rotation.x = -Math.PI / 2;
-            rearSignMesh.position.set(rearX + 1.5, 0.02, currentTruck.width / 2 + 1.2);
-            truckGroup.add(rearSignMesh);
+            // フロントガラス (白部分の前面)
+            const glassGeo = new THREE.PlaneGeometry(cabWidth * 0.85, cabHeight * 0.35);
+            const glassMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
+            const glassMesh = new THREE.Mesh(glassGeo, glassMat);
+            glassMesh.position.set(0, cabHeight * 0.65, cabZ - cabLength / 2 - 0.01);
+            truckGroup.add(glassMesh);
+
+            // ヘッドライト
+            const lightGeo = new THREE.BoxGeometry(0.4, 0.25, 0.1);
+            const lightMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+            const leftLight = new THREE.Mesh(lightGeo, lightMat);
+            leftLight.position.set(-cabWidth * 0.35, cabHeight * 0.2, cabZ - cabLength / 2 - 0.02);
+            const rightLight = new THREE.Mesh(lightGeo, lightMat);
+            rightLight.position.set(cabWidth * 0.35, cabHeight * 0.2, cabZ - cabLength / 2 - 0.02);
+            truckGroup.add(leftLight);
+            truckGroup.add(rightLight);
+
+            // 4. リアゲート（後あおり / 扉） - 後ろ方向 (+Z側) に配置
+            const rearGeo = new THREE.BoxGeometry(currentTruck.w, 0.4, 0.1);
+            const rearMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db });
+            const rearMesh = new THREE.Mesh(rearGeo, rearMat);
+            rearMesh.position.set(0, 0.2, currentTruck.l / 2 + 0.05);
+            truckGroup.add(rearMesh);
+
+            // テールランプ（赤）
+            const tailLightGeo = new THREE.BoxGeometry(0.3, 0.15, 0.05);
+            const tailLightMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+            const leftTail = new THREE.Mesh(tailLightGeo, tailLightMat);
+            leftTail.position.set(-currentTruck.w * 0.4, 0.15, currentTruck.l / 2 + 0.11);
+            const rightTail = new THREE.Mesh(tailLightGeo, tailLightMat);
+            rightTail.position.set(currentTruck.w * 0.4, 0.15, currentTruck.l / 2 + 0.11);
+            truckGroup.add(leftTail);
+            truckGroup.add(rightTail);
 
             updateStorageArea();
         }
 
         function createStorageTexture() {
             const canvas = document.createElement('canvas');
-            canvas.width = 1024;
-            canvas.height = 512;
+            canvas.width = 512;
+            canvas.height = 1024;
             const ctx = canvas.getContext('2d');
+            
             ctx.fillStyle = '#cbd5e1';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.strokeStyle = '#ffffff';
             ctx.lineWidth = 16;
             ctx.setLineDash([30, 20]);
             ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
-            ctx.fillStyle = '#475569';
-            ctx.font = 'bold 44px sans-serif';
+            
+            ctx.fillStyle = '#1e293b';
+            ctx.font = 'bold 42px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('📦 仮 置 き エ リ ア', canvas.width / 2, canvas.height / 2);
+            
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillText('📦 仮 置 き エ リ ア', 0, -30);
+            
+            ctx.font = 'bold 32px sans-serif';
+            ctx.fillStyle = '#dc2626';
+            ctx.fillText('⬅️ 前 (運転席側)  後 (リア側) ➡️', 0, 40);
+            ctx.restore();
+            
             return new THREE.CanvasTexture(canvas);
         }
 
         let storageMesh;
         function updateStorageArea() {
             if (storageMesh) scene.remove(storageMesh);
-            // 奥側（Zのマイナス方向）に設置
-            const storageGeo = new THREE.PlaneGeometry(currentTruck.length, 5);
+            const storageGeo = new THREE.PlaneGeometry(6, currentTruck.l);
             const storageMat = new THREE.MeshBasicMaterial({ 
                 map: createStorageTexture(),
                 side: THREE.DoubleSide, 
                 transparent: true, 
-                opacity: 0.8 
+                opacity: 0.85 
             });
             storageMesh = new THREE.Mesh(storageGeo, storageMat);
             storageMesh.rotation.x = -Math.PI / 2;
-            storageMesh.position.set(0, 0.01, -(currentTruck.width / 2 + 3.5));
+            storageMesh.position.set(-(currentTruck.w / 2 + 4), 0.01, 0);
             scene.add(storageMesh);
         }
 
@@ -507,7 +518,42 @@
         const totalWeightEl = document.getElementById('total-weight');
         const cargoCountEl = document.getElementById('cargo-count');
 
-        // 🔥 クラウド (Firebase) への自動保存処理
+        function escapeHTML(str) {
+            return String(str).replace(/[&<>"']/g, function(m) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+            });
+        }
+
+        function createCargoMesh(id, w, h, l, x, y, z, colorHex, memo, weight) {
+            const geo = new THREE.BoxGeometry(w, h, l);
+            const mat = new THREE.MeshStandardMaterial({ 
+                color: parseInt(colorHex), 
+                roughness: 0.4,
+                metalness: 0.1
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, y, z);
+            mesh.userData = { id, w, h, l, colorHex, memo, weight };
+
+            const edges = new THREE.EdgesGeometry(geo);
+            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 }));
+            mesh.add(line);
+
+            scene.add(mesh);
+            dragObjects.push(mesh);
+
+            // HTML 3Dラベルの生成
+            const labelEl = document.createElement('div');
+            labelEl.className = 'html-label';
+            labelEl.innerHTML = `<span class="html-label-memo">${escapeHTML(memo || '荷物')}</span>${w.toFixed(1)}×${h.toFixed(1)}×${l.toFixed(1)}m<span class="html-label-weight">${weight}kg</span>`;
+            labelOverlay.appendChild(labelEl);
+
+            const cargoObj = { id, mesh, w, h, l, colorHex, memo, weight, labelEl };
+            loadedCargos.push(cargoObj);
+
+            return cargoObj;
+        }
+
         async function saveToCloud() {
             if (isRemoteUpdating || isMobile) return;
 
@@ -535,7 +581,6 @@
             }
         }
 
-        // 🔥 クラウド (Firebase) からのリアルタイム同期受信処理
         onSnapshot(cargoDocRef, (docSnap) => {
             if (!docSnap.exists()) return;
 
@@ -550,7 +595,6 @@
                 updateTruckGeometry();
             }
 
-            // 全荷物のリセット
             loadedCargos.forEach(c => {
                 scene.remove(c.mesh);
                 if (c.labelEl) c.labelEl.remove();
@@ -558,7 +602,6 @@
             loadedCargos = [];
             dragObjects.length = 0;
 
-            // 荷物の復元
             if (data.cargos && Array.isArray(data.cargos)) {
                 data.cargos.forEach(item => {
                     createCargoMesh(item.id, item.w, item.h, item.l, item.x, item.y, item.z, item.color, item.memo, item.weight);
@@ -572,8 +615,8 @@
 
         function isInsideTruck(cargo) {
             const pos = cargo.mesh.position;
-            const inX = Math.abs(pos.x) <= (currentTruck.length / 2 + 0.2);
-            const inZ = Math.abs(pos.z) <= (currentTruck.width / 2 + 0.2);
+            const inX = Math.abs(pos.x) <= (currentTruck.w / 2 + 0.2);
+            const inZ = Math.abs(pos.z) <= (currentTruck.l / 2 + 0.2);
             return inX && inZ;
         }
 
@@ -697,12 +740,12 @@
             let newZ = posZ;
             let snappedNow = false;
 
-            const truckMinX = -currentTruck.length / 2 + targetW / 2;
-            const truckMaxX =  currentTruck.length / 2 - targetW / 2;
-            const truckMinZ = -currentTruck.width / 2 + targetL / 2;
-            const truckMaxZ =  currentTruck.width / 2 - targetL / 2;
+            const truckMinX = -currentTruck.w / 2 + targetW / 2;
+            const truckMaxX =  currentTruck.w / 2 - targetW / 2;
+            const truckMinZ = -currentTruck.l / 2 + targetL / 2;
+            const truckMaxZ =  currentTruck.l / 2 - targetL / 2;
 
-            if (Math.abs(posX) <= currentTruck.length / 2 + 0.5 && Math.abs(posZ) <= currentTruck.width / 2 + 0.5) {
+            if (Math.abs(posX) <= currentTruck.w / 2 + 0.5 && Math.abs(posZ) <= currentTruck.l / 2 + 0.5) {
                 if (Math.abs(newX - truckMinX) < SNAP_THRESHOLD) { newX = truckMinX; snappedNow = true; }
                 else if (Math.abs(newX - truckMaxX) < SNAP_THRESHOLD) { newX = truckMaxX; snappedNow = true; }
 
@@ -771,7 +814,7 @@
 
                 plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), selectedObject.position);
                 if (raycaster.ray.intersectPlane(plane, intersection)) {
-                    offset.copy(selectedObject.position).sub(intersection);
+                    offset.copy(intersection).sub(selectedObject.position);
                 }
             } else {
                 selectObject(null);
@@ -788,223 +831,167 @@
             mouse.y = -(clickY / canvasHeight) * 2 + 1;
 
             raycaster.setFromCamera(mouse, camera);
-            
+
             if (raycaster.ray.intersectPlane(plane, intersection)) {
-                const newPos = intersection.clone().add(offset);
-                
-                const snapped = applySnapping(selectedObject, newPos.x, newPos.z);
+                const targetPos = intersection.sub(offset);
+                const snapped = applySnapping(selectedObject, targetPos.x, targetPos.z);
+
                 selectedObject.position.x = snapped.x;
                 selectedObject.position.z = snapped.z;
 
-                selectedObject.position.y = calculateSurfaceY(selectedObject);
+                const surfaceY = calculateSurfaceY(selectedObject);
+                selectedObject.position.y = surfaceY;
+
+                updateSummaryAndList();
             }
         }
 
-        function onPointerUp() { 
-            if (!controls.enabled) {
-                controls.enabled = true; 
-                isSnapped = false;
-                updateSummaryAndList(); 
+        function onPointerUp() {
+            if (isMobile) return;
+            if (selectedObject && !controls.enabled) {
+                controls.enabled = true;
                 saveToCloud();
             }
         }
 
-        renderer.domElement.addEventListener('pointerdown', onPointerDown);
+        window.addEventListener('pointerdown', onPointerDown);
         window.addEventListener('pointermove', onPointerMove);
         window.addEventListener('pointerup', onPointerUp);
 
+        // キーボードでの高さ(Y軸)調整 (W:上, S:下)
         window.addEventListener('keydown', (e) => {
             if (isMobile || !selectedObject) return;
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+            const step = 0.1;
             if (e.key === 'w' || e.key === 'W') {
-                selectedObject.position.y += 0.1;
+                selectedObject.position.y += step;
                 saveToCloud();
             } else if (e.key === 's' || e.key === 'S') {
-                const minH = selectedObject.geometry.parameters.height / 2;
-                selectedObject.position.y = Math.max(minH, selectedObject.position.y - 0.1);
-                saveToCloud();
+                const targetH = selectedObject.geometry.parameters.height;
+                if (selectedObject.position.y - step >= targetH / 2) {
+                    selectedObject.position.y -= step;
+                    saveToCloud();
+                }
             }
         });
 
-        function createCargoMesh(id, w, h, l, posX, posY, posZ, colorHex, memoText, weight) {
-            const geometry = new THREE.BoxGeometry(w, h, l);
-            const material = new THREE.MeshStandardMaterial({ color: parseInt(colorHex), roughness: 0.4 });
-            const mesh = new THREE.Mesh(geometry, material);
-
-            mesh.position.set(posX, posY, posZ);
-            
-            const edges = new THREE.EdgesGeometry(geometry);
-            mesh.add(new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 })));
-
-            const cargoLabelDiv = document.createElement('div');
-            cargoLabelDiv.className = 'html-label';
-            
-            let labelContent = '';
-            if (memoText && memoText.trim() !== "") {
-                labelContent += `<span class="html-label-memo">${escapeHTML(memoText)}</span>`;
-            }
-            labelContent += `${w.toFixed(1)}m×${h.toFixed(1)}m×${l.toFixed(1)}m`;
-            if (weight > 0) {
-                labelContent += `<span class="html-label-weight">(${weight}kg)</span>`;
-            }
-
-            cargoLabelDiv.innerHTML = labelContent;
-            labelOverlay.appendChild(cargoLabelDiv);
-
-            scene.add(mesh);
-            dragObjects.push(mesh); 
-            const cargoObj = { id, mesh, w, h, l, colorHex, memo: memoText, weight, labelEl: cargoLabelDiv };
-            loadedCargos.push(cargoObj);
-
-            return cargoObj;
-        }
-
-        function createCargo(w, h, l, posX, posY, posZ, colorHex, memoText, weight) {
-            const id = 'cargo_' + Date.now() + '_' + Math.floor(Math.random()*1000);
-            const defaultY = posY + (h / 2);
-            const cargoObj = createCargoMesh(id, w, h, l, posX, defaultY, posZ, colorHex, memoText, weight);
-            cargoObj.mesh.position.y = calculateSurfaceY(cargoObj.mesh);
-
-            selectObject(cargoObj.mesh);
-            saveToCloud();
-        }
-
         function deleteCargo(targetMesh) {
             if (!targetMesh) return;
-
-            const cargoIndex = loadedCargos.findIndex(c => c.mesh === targetMesh);
-            if (cargoIndex > -1) {
-                if (loadedCargos[cargoIndex].labelEl) loadedCargos[cargoIndex].labelEl.remove();
-                loadedCargos.splice(cargoIndex, 1);
+            const index = loadedCargos.findIndex(c => c.mesh === targetMesh);
+            if (index !== -1) {
+                const cargo = loadedCargos[index];
+                scene.remove(cargo.mesh);
+                if (cargo.labelEl) cargo.labelEl.remove();
+                
+                const dragIdx = dragObjects.indexOf(cargo.mesh);
+                if (dragIdx !== -1) dragObjects.splice(dragIdx, 1);
+                
+                loadedCargos.splice(index, 1);
             }
-            scene.remove(targetMesh);
-            const dragIndex = dragObjects.indexOf(targetMesh);
-            if (dragIndex > -1) dragObjects.splice(dragIndex, 1);
-
-            if (selectedObject === targetMesh) {
-                selectObject(null);
-            } else {
-                updateSummaryAndList();
-            }
+            selectObject(null);
             saveToCloud();
         }
 
-        function escapeHTML(str) {
-            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
-        }
+        // イベント設定
+        document.getElementById('add-btn').addEventListener('click', () => {
+            const memo = document.getElementById('cargo-memo').value || '荷物';
+            const weight = parseFloat(document.getElementById('cargo-weight').value) || 0;
+            const w = parseFloat(document.getElementById('cargo-w').value);
+            const h = parseFloat(document.getElementById('cargo-h').value);
+            const l = parseFloat(document.getElementById('cargo-l').value);
+            const colorHex = document.getElementById('cargo-color').value;
 
-        function setInputValues(memo, weight, w, h, l) {
-            document.getElementById('cargo-memo').value = memo;
-            document.getElementById('cargo-weight').value = weight;
-            document.getElementById('cargo-w').value = w;
-            document.getElementById('cargo-h').value = h;
-            document.getElementById('cargo-l').value = l;
-        }
+            const newId = 'cargo_' + Date.now();
+            const cargoObj = createCargoMesh(newId, w, h, l, -(currentTruck.w / 2 + 4), h / 2, 0, colorHex, memo, weight);
+            selectObject(cargoObj.mesh);
+            saveToCloud();
+        });
 
-        function tryAddCargo(memo, weight, w, h, l, color) {
-            const defaultX = (currentTruck.length / 2) - (w / 2);
-            const defaultZ = 0;
-            createCargo(w, h, l, defaultX, 0, defaultZ, color, memo, weight);
-            return true;
-        }
-
-        if (!isMobile) {
-            document.getElementById('unload-all-btn').addEventListener('click', () => {
-                let storageOffsetX = -(currentTruck.length / 2) + 2;
-                let storageZ = -(currentTruck.width / 2 + 3.5);
-
-                loadedCargos.forEach((cargo) => {
-                    const mesh = cargo.mesh;
-                    mesh.position.x = storageOffsetX;
-                    mesh.position.z = storageZ;
-                    mesh.position.y = cargo.h / 2;
-                    
-                    storageOffsetX += cargo.w + 0.5;
-                    if (storageOffsetX > currentTruck.length / 2) {
-                        storageOffsetX = -(currentTruck.length / 2) + 2;
-                        storageZ -= (cargo.l + 0.5);
-                    }
-                });
-
-                updateSummaryAndList();
-                saveToCloud();
+        document.getElementById('unload-all-btn').addEventListener('click', () => {
+            let offsetZ = -currentTruck.l / 2 + 1;
+            loadedCargos.forEach(cargo => {
+                cargo.mesh.position.set(-(currentTruck.w / 2 + 4), cargo.h / 2, offsetZ);
+                offsetZ += cargo.l + 0.2;
             });
+            updateSummaryAndList();
+            saveToCloud();
+        });
 
-            document.getElementById('preset-las3000').addEventListener('click', () => {
-                setInputValues('ラス3000㎡', 3000, 6.0, 0.5, 2.4);
-                tryAddCargo('ラス3000㎡', 3000, 6.0, 0.5, 2.4, '0x3b82f6');
-            });
+        document.getElementById('delete-btn').addEventListener('click', () => {
+            if (selectedObject) deleteCargo(selectedObject);
+        });
 
-            document.getElementById('preset-las5000').addEventListener('click', () => {
-                setInputValues('ラス5000㎡', 5000, 10.0, 0.5, 2.4);
-                tryAddCargo('ラス5000㎡', 5000, 10.0, 0.5, 2.4, '0x0d9488');
-            });
+        document.getElementById('truck-type').addEventListener('change', (e) => {
+            currentTruckType = e.target.value;
+            currentTruck = TRUCK_SIZES[currentTruckType];
+            updateTruckGeometry();
+            saveToCloud();
+        });
 
-            document.getElementById('label-mode').addEventListener('change', updateLabelsVisibility);
+        document.getElementById('label-mode').addEventListener('change', () => {
+            updateLabelsVisibility();
+        });
 
-            document.getElementById('truck-type').addEventListener('change', (e) => {
-                currentTruckType = e.target.value;
-                currentTruck = TRUCK_SIZES[currentTruckType];
-                updateTruckGeometry();
-                selectObject(null); 
-                updateLabelsVisibility();
-                saveToCloud();
-            });
+        // クイック追加ボタン (両方とも 赤: 0xef4444 に統一)
+        document.getElementById('preset-las3000').addEventListener('click', () => {
+            const newId = 'cargo_' + Date.now();
+            const cargoObj = createCargoMesh(newId, 2.4, 0.5, 6.0, -(currentTruck.w / 2 + 4), 0.25, 0, '0xef4444', 'ラス3000㎡', 3000);
+            selectObject(cargoObj.mesh);
+            saveToCloud();
+        });
 
-            document.getElementById('add-btn').addEventListener('click', () => {
-                const w = parseFloat(document.getElementById('cargo-w').value);
-                const h = parseFloat(document.getElementById('cargo-h').value);
-                const l = parseFloat(document.getElementById('cargo-l').value);
-                const color = document.getElementById('cargo-color').value;
-                const memo = document.getElementById('cargo-memo').value;
-                const weight = parseFloat(document.getElementById('cargo-weight').value) || 0;
+        document.getElementById('preset-las5000').addEventListener('click', () => {
+            const newId = 'cargo_' + Date.now();
+            const cargoObj = createCargoMesh(newId, 2.4, 0.8, 9.6, -(currentTruck.w / 2 + 4), 0.4, 0, '0xef4444', 'ラス5000㎡', 5000);
+            selectObject(cargoObj.mesh);
+            saveToCloud();
+        });
 
-                tryAddCargo(memo, weight, w, h, l, color);
-            });
-
-            deleteBtn.addEventListener('click', () => {
-                deleteCargo(selectedObject);
-            });
-        }
-
+        // 3Dラベルの追従描画
         const tempV = new THREE.Vector3();
-        function updateLabelPositions() {
+        function updateLabelsPosition() {
             const widthHalf = window.innerWidth / 2;
             const heightHalf = (window.innerHeight - headerHeight()) / 2;
 
             for (let cargo of loadedCargos) {
-                const element = cargo.labelEl;
-                if (!element || element.style.display === 'none') continue;
+                if (!cargo.labelEl || cargo.labelEl.style.display === 'none') continue;
 
-                cargo.mesh.updateMatrixWorld();
-                tempV.setFromMatrixPosition(cargo.mesh.matrixWorld);
-                tempV.y += (cargo.h / 2) + 0.3;
+                tempV.copy(cargo.mesh.position);
+                tempV.y += cargo.h / 2; 
 
                 tempV.project(camera);
+
                 if (tempV.z > 1) {
-                    element.style.visibility = 'hidden';
+                    cargo.labelEl.style.opacity = '0';
                     continue;
-                } else {
-                    element.style.visibility = 'visible';
                 }
 
-                element.style.left = `${(tempV.x * widthHalf) + widthHalf}px`;
-                element.style.top = `${-(tempV.y * heightHalf) + heightHalf + headerHeight()}px`;
+                const x = (tempV.x * widthHalf) + widthHalf;
+                const y = -(tempV.y * heightHalf) + heightHalf + headerHeight();
+
+                cargo.labelEl.style.left = `${x}px`;
+                cargo.labelEl.style.top = `${y}px`;
+                cargo.labelEl.style.opacity = '1';
             }
         }
 
+        // ウインドウリサイズ対応
+        window.addEventListener('resize', () => {
+            const h = window.innerHeight - headerHeight();
+            camera.aspect = window.innerWidth / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, h);
+        });
+
+        // アニメーションループ
         function animate() {
             requestAnimationFrame(animate);
-            controls.update(); 
+            controls.update();
+            updateLabelsPosition();
             renderer.render(scene, camera);
-            updateLabelPositions(); 
         }
         animate();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / (window.innerHeight - headerHeight());
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight - headerHeight());
-        });
     </script>
 </body>
 </html>
