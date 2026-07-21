@@ -442,11 +442,7 @@
             ctx.save();
             ctx.translate(canvas.width / 2, canvas.height / 2);
             ctx.rotate(-Math.PI / 2);
-            ctx.fillText('📦 仮 置 き エ リ ア', 0, -30);
-            
-            ctx.font = 'bold 32px sans-serif';
-            ctx.fillStyle = '#dc2626';
-            ctx.fillText('⬅️ 前 (運転席側)  後 (リア側) ➡️', 0, 40);
+            ctx.fillText('📦 仮 置 き エ リ ア', 0, 0);
             ctx.restore();
             
             return new THREE.CanvasTexture(canvas);
@@ -496,7 +492,6 @@
             if (isNaN(colorVal)) colorVal = 0xf87171;
 
             const geo = new THREE.BoxGeometry(w, h, l);
-            // 透明感を持たせる設定 (transparent: true, opacity: 0.7)
             const mat = new THREE.MeshStandardMaterial({ 
                 color: colorVal, 
                 roughness: 0.4,
@@ -956,7 +951,6 @@
                 const hh = cargo.h / 2;
                 const hl = cargo.l / 2;
 
-                // 荷物の8つの頂点を定義し、ワールド座標に変換して「カメラに最も近い上側の角」を自動検出する
                 corners[0].set(-hw,  hh, -hl);
                 corners[1].set( hw,  hh, -hl);
                 corners[2].set(-hw,  hh,  hl);
@@ -966,12 +960,10 @@
                 corners[6].set(-hw, -hh,  hl);
                 corners[7].set( hw, -hh,  hl);
 
-                for (let i = 0; i < 4; i++) { // 上側の4つの角を対象に最も手前（カメラ方向 Zが最大になる角など）を選ぶ
+                for (let i = 0; i < 4; i++) {
                     corners[i].applyMatrix4(mesh.matrixWorld);
                 }
 
-                // カメラから見て最も手前（画面手前側＝カメラ座標系で手前）になる上部の角を決定
-                // ここでは単純にカメラ位置に最も近い上側の角を選択する
                 let closestPoint = corners[0];
                 let minDist = camera.position.distanceTo(corners[0]);
                 for (let i = 1; i < 4; i++) {
@@ -985,7 +977,7 @@
                 anchorV.copy(closestPoint);
 
                 tempV.copy(anchorV);
-                tempV.y += 0.8; // ラベルを角の少し上に配置
+                tempV.y += 0.8; 
 
                 anchorV.project(camera);
                 tempV.project(camera);
