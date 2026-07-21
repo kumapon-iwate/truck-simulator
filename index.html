@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>出荷日・便選択</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; background: #f5f5f5; }
+    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    h1 { font-size: 1.2rem; text-align: center; color: #333; margin-bottom: 20px; }
+    
+    label { display: block; font-weight: bold; margin-bottom: 8px; }
+    input[type="date"] {
+      width: 100%; font-size: 1.2rem; padding: 12px; border: 2px solid #ccc;
+      border-radius: 8px; box-sizing: border-box; margin-bottom: 24px;
+    }
+    
+    .btn-group { display: flex; flex-direction: column; gap: 12px; }
+    .btn {
+      padding: 16px; font-size: 1.1rem; font-weight: bold; color: white;
+      border: none; border-radius: 8px; cursor: pointer; text-align: center;
+      transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn-noda { background-color: #2b6cb0; }      /* 野田便：青 */
+    .btn-bousai { background-color: #dd6b20; }    /* 野田防災便：オレンジ */
+    .btn-minami { background-color: #2f855a; }    /* 南関東便：緑 */
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h1>出荷日・行き先を選択</h1>
+
+  <!-- 1. 出荷日付を選択 -->
+  <label for="ship-date">出荷日を選択：</label>
+  <input type="date" id="ship-date">
+
+  <!-- 2. 便を選択して遷移 -->
+  <div class="btn-group">
+    <button class="btn btn-noda" onclick="goNext('野田便')">① 野田便へ</button>
+    <button class="btn btn-bousai" onclick="goNext('野田防災便')">② 野田防災便へ</button>
+    <button class="btn btn-minami" onclick="goNext('南関東便')">③ 南関東便へ</button>
+  </div>
+</div>
+
+<script>
+  // 初期値として「今日」を選択状態にする
+  const dateInput = document.getElementById('ship-date');
+  dateInput.value = new Date().toISOString().split('T')[0];
+
+  function goNext(destination) {
+    const selectedDate = dateInput.value;
+    if (!selectedDate) {
+      alert('出荷日を選択してください。');
+      return;
+    }
+    // 例: tsumikomi.html?date=2026-07-21&dest=野田便 へ遷移
+    const url = `tsumikomi.html?date=${encodeURIComponent(selectedDate)}&dest=${encodeURIComponent(destination)}`;
+    window.location.href = url;
+  }
+</script>
+
+</body>
+</html>
