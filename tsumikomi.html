@@ -372,7 +372,6 @@
         scene.add(dirLight);
         scene.add(new THREE.GridHelper(40, 40));
 
-        // トラック構造体とキャビン・リアゲートのグループ
         let truckGroup = new THREE.Group();
         scene.add(truckGroup);
 
@@ -381,14 +380,12 @@
                 truckGroup.remove(truckGroup.children[0]); 
             }
 
-            // 1. 荷台フレーム（ワイヤーフレーム）
             const truckGeo = new THREE.BoxGeometry(currentTruck.w, currentTruck.h, currentTruck.l);
             const truckMat = new THREE.MeshBasicMaterial({ color: 0x0284c7, wireframe: true, transparent: true, opacity: 0.4 });
             const truckMesh = new THREE.Mesh(truckGeo, truckMat);
             truckMesh.position.set(0, currentTruck.h / 2, 0);
             truckGroup.add(truckMesh);
 
-            // 2. 荷台の床面（グレー）
             const floorGeo = new THREE.PlaneGeometry(currentTruck.w, currentTruck.l);
             const floorMat = new THREE.MeshStandardMaterial({ color: 0x475569, side: THREE.DoubleSide });
             const floorMesh = new THREE.Mesh(floorGeo, floorMat);
@@ -396,35 +393,30 @@
             floorMesh.position.set(0, 0.005, 0);
             truckGroup.add(floorMesh);
 
-            // 3. キャビン（運転席） - 前方向 (-Z側) に配置【ツートンカラー：上半分白・下半分緑】
             const cabWidth = currentTruck.w;
             const cabHeight = Math.max(currentTruck.h, 2.2);
             const cabLength = 1.8;
             const cabZ = -currentTruck.l / 2 - cabLength / 2;
             const halfHeight = cabHeight / 2;
 
-            // キャビン下部分 (緑)
             const cabBottomGeo = new THREE.BoxGeometry(cabWidth, halfHeight, cabLength);
             const cabBottomMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.3 }); 
             const cabBottomMesh = new THREE.Mesh(cabBottomGeo, cabBottomMat);
             cabBottomMesh.position.set(0, halfHeight / 2, cabZ);
             truckGroup.add(cabBottomMesh);
 
-            // キャビン上部分 (白)
             const cabTopGeo = new THREE.BoxGeometry(cabWidth, halfHeight, cabLength);
             const cabTopMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.3 }); 
             const cabTopMesh = new THREE.Mesh(cabTopGeo, cabTopMat);
             cabTopMesh.position.set(0, halfHeight + halfHeight / 2, cabZ);
             truckGroup.add(cabTopMesh);
 
-            // フロントガラス (白部分の前面)
             const glassGeo = new THREE.PlaneGeometry(cabWidth * 0.85, cabHeight * 0.35);
             const glassMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
             const glassMesh = new THREE.Mesh(glassGeo, glassMat);
             glassMesh.position.set(0, cabHeight * 0.65, cabZ - cabLength / 2 - 0.01);
             truckGroup.add(glassMesh);
 
-            // ヘッドライト
             const lightGeo = new THREE.BoxGeometry(0.4, 0.25, 0.1);
             const lightMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
             const leftLight = new THREE.Mesh(lightGeo, lightMat);
@@ -434,14 +426,12 @@
             truckGroup.add(leftLight);
             truckGroup.add(rightLight);
 
-            // 4. リアゲート（後あおり / 扉） - 後ろ方向 (+Z側) に配置
             const rearGeo = new THREE.BoxGeometry(currentTruck.w, 0.4, 0.1);
             const rearMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db });
             const rearMesh = new THREE.Mesh(rearGeo, rearMat);
             rearMesh.position.set(0, 0.2, currentTruck.l / 2 + 0.05);
             truckGroup.add(rearMesh);
 
-            // テールランプ（赤）
             const tailLightGeo = new THREE.BoxGeometry(0.3, 0.15, 0.05);
             const tailLightMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
             const leftTail = new THREE.Mesh(tailLightGeo, tailLightMat);
@@ -525,9 +515,13 @@
         }
 
         function createCargoMesh(id, w, h, l, x, y, z, colorHex, memo, weight) {
+            // colorHexが 0x〜 の形式でない場合に自動変換
+            let colorVal = typeof colorHex === 'string' ? parseInt(colorHex, 16) : colorHex;
+            if (isNaN(colorVal)) colorVal = 0xef4444;
+
             const geo = new THREE.BoxGeometry(w, h, l);
             const mat = new THREE.MeshStandardMaterial({ 
-                color: parseInt(colorHex), 
+                color: colorVal, 
                 roughness: 0.4,
                 metalness: 0.1
             });
@@ -542,7 +536,6 @@
             scene.add(mesh);
             dragObjects.push(mesh);
 
-            // HTML 3Dラベルの生成
             const labelEl = document.createElement('div');
             labelEl.className = 'html-label';
             labelEl.innerHTML = `<span class="html-label-memo">${escapeHTML(memo || '荷物')}</span>${w.toFixed(1)}×${h.toFixed(1)}×${l.toFixed(1)}m<span class="html-label-weight">${weight}kg</span>`;
@@ -609,7 +602,6 @@
             }
 
             selectObject(null);
-            updateSummaryAndList();
             isRemoteUpdating = false;
         });
 
@@ -656,7 +648,8 @@
                 if (!isMobile) {
                     const delBtnEl = li.querySelector('.btn-item-delete');
                     if (delBtnEl) {
-                        delBtnEl.addEventListener('click', () => {
+                        delBtnEl.addEventListener('click', (e) => {
+                            e.stopPropagation();
                             deleteCargo(cargo.mesh);
                         });
                     }
@@ -918,7 +911,7 @@
             saveToCloud();
         });
 
-        document.getElementById('delete-btn').addEventListener('click', () => {
+        deleteBtn.addEventListener('click', () => {
             if (selectedObject) deleteCargo(selectedObject);
         });
 
@@ -933,7 +926,7 @@
             updateLabelsVisibility();
         });
 
-        // クイック追加ボタン (両方とも 赤: 0xef4444 に統一)
+        // クイック追加ボタン (両方とも 赤: '0xef4444' に設定)
         document.getElementById('preset-las3000').addEventListener('click', () => {
             const newId = 'cargo_' + Date.now();
             const cargoObj = createCargoMesh(newId, 2.4, 0.5, 6.0, -(currentTruck.w / 2 + 4), 0.25, 0, '0xef4444', 'ラス3000㎡', 3000);
