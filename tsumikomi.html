@@ -162,57 +162,31 @@
         .html-label-memo { color: #1e3a8a; border-bottom: 1px dashed #93c5fd; padding-bottom: 2px; margin-bottom: 2px; font-size: 12px; display: block; }
         .html-label-weight { color: #d97706; font-weight: bold; margin-left: 4px; }
 
-        /* ========================================================= */
-        /* 📱 スマホ専用スタイルの調整 (画面幅 768px 以下) */
-        /* ========================================================= */
+        /* スマホ専用スタイル */
         @media screen and (max-width: 768px) {
-            #ship-header {
-                padding: 5px 10px;
-                height: 40px;
-            }
+            #ship-header { padding: 5px 10px; height: 40px; }
             .btn-back { font-size: 10px; padding: 4px 8px; }
             .ship-date { font-size: 11px; }
             .ship-dest { font-size: 15px; }
 
-            /* 右側パネルをスマホ用にシンプル化 */
             #list-panel {
-                top: 48px;
-                right: 8px;
-                width: calc(100% - 16px);
-                max-width: 340px;
-                max-height: 180px;
+                top: 48px; right: 8px; width: calc(100% - 16px);
+                max-width: 340px; max-height: 180px;
                 background: rgba(255, 255, 255, 0.92);
-                backdrop-filter: blur(4px);
-                padding: 8px;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                backdrop-filter: blur(4px); padding: 8px;
+                border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             }
-            .summary-box {
-                padding: 4px 8px;
-                margin-bottom: 4px;
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-            }
+            .summary-box { padding: 4px 8px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; }
             .summary-title { font-size: 10px; margin: 0; }
             .summary-weight { font-size: 15px; }
-
-            .cargo-item {
-                padding: 4px 6px;
-            }
+            .cargo-item { padding: 4px 6px; }
             .cargo-item-name { font-size: 11px; }
             .cargo-item-detail { font-size: 10px; }
 
-            /* 3Dラベルのサイズ調整 */
-            .html-label {
-                padding: 3px 6px;
-                font-size: 10px;
-                border-width: 1.5px;
-            }
+            .html-label { padding: 3px 6px; font-size: 10px; border-width: 1.5px; }
             .html-label-memo { font-size: 11px; }
         }
     </style>
-    <!-- Three.js 読み込み -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
@@ -229,7 +203,7 @@
         <div style="width: 40px;"></div>
     </div>
 
-    <!-- 左側：設定パネル (PCでのみ表示) -->
+    <!-- 左側：設定パネル (PC専用) -->
     <div id="control-panel">
         <h1>🚚 車種・積み荷の設定</h1>
         
@@ -337,7 +311,6 @@
             appId: "1:131337425448:web:b04a7118303e1ccd835b1d"
         };
 
-        // Firebaseの初期化
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
@@ -350,12 +323,10 @@
             if (readOnlyTag) readOnlyTag.style.display = 'inline-block';
         }
 
-        // URLパラメータの取得
         const params = new URLSearchParams(window.location.search);
         const dateVal = params.get('date') || 'default-date';
         const destVal = params.get('dest') || 'default-dest';
 
-        // Firebase上の保存キー
         const docId = `${dateVal}_${destVal}`;
         const cargoDocRef = doc(db, "shipment_cargos", docId);
 
@@ -401,14 +372,96 @@
         scene.add(dirLight);
         scene.add(new THREE.GridHelper(40, 40));
 
-        let truckMesh;
+        let truckGroup = new THREE.Group();
+        scene.add(truckGroup);
+
+        // トラック床面のテクスチャ（前後がわかるガイド表示）
+        function createTruckFloorTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#e2e8f0';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 外枠ガイド
+            ctx.strokeStyle = '#64748b';
+            ctx.lineWidth = 12;
+            ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+
+            // 前方（キャビン側 = canvas上部 Z-方向）の大きな黄色ガイドゾーン
+            ctx.fillStyle = '#eab308';
+            ctx.fillRect(10, 10, canvas.width - 20, 120);
+
+            ctx.fillStyle = '#0f172a';
+            ctx.font = 'bold 52px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('▲ 前 (FRONT) ▲', canvas.width / 2, 70);
+
+            // 中央に大きな進行方向矢印
+            ctx.fillStyle = 'rgba(100, 116, 139, 0.15)';
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, 200);
+            ctx.lineTo(canvas.width - 80, 450);
+            ctx.lineTo(canvas.width / 2 + 60, 450);
+            ctx.lineTo(canvas.width / 2 + 60, 850);
+            ctx.lineTo(canvas.width / 2 - 60, 850);
+            ctx.lineTo(canvas.width / 2 - 60, 450);
+            ctx.lineTo(80, 450);
+            ctx.closePath();
+            ctx.fill();
+
+            // 後方（リアゲート側 = canvas下部）表示
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = 'bold 40px sans-serif';
+            ctx.fillText('▼ 後ろ (REAR) ▼', canvas.width / 2, canvas.height - 50);
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
         function updateTruckGeometry() {
-            if (truckMesh) scene.remove(truckMesh);
+            // 既存のトラック関連を一旦全削除
+            while(truckGroup.children.length > 0){ 
+                truckGroup.remove(truckGroup.children[0]); 
+            }
+
+            // 1. トラック外枠ワイヤーフレーム
             const truckGeo = new THREE.BoxGeometry(currentTruck.w, currentTruck.h, currentTruck.l);
-            const truckMat = new THREE.MeshBasicMaterial({ color: 0x333333, wireframe: true, transparent: true, opacity: 0.3 });
-            truckMesh = new THREE.Mesh(truckGeo, truckMat);
+            const truckMat = new THREE.MeshBasicMaterial({ color: 0x334155, wireframe: true, transparent: true, opacity: 0.3 });
+            const truckMesh = new THREE.Mesh(truckGeo, truckMat);
             truckMesh.position.set(0, currentTruck.h / 2, 0);
-            scene.add(truckMesh);
+            truckGroup.add(truckMesh);
+
+            // 2. 荷台底面のガイド付きテクスチャ床板
+            const floorGeo = new THREE.PlaneGeometry(currentTruck.w, currentTruck.l);
+            const floorMat = new THREE.MeshBasicMaterial({
+                map: createTruckFloorTexture(),
+                side: THREE.DoubleSide
+            });
+            const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+            floorMesh.rotation.x = -Math.PI / 2;
+            floorMesh.position.set(0, 0.01, 0);
+            truckGroup.add(floorMesh);
+
+            // 3. 前面（フロントバンパー）を際立たせる黄色い立体フレーム（Zのマイナス側＝前）
+            const frontWidth = currentTruck.w + 0.1;
+            const frontHeight = currentTruck.h + 0.1;
+            const frontZ = -currentTruck.l / 2;
+
+            const frontFrameGeo = new THREE.BoxGeometry(frontWidth, frontHeight, 0.08);
+            const frontFrameMat = new THREE.MeshBasicMaterial({ color: 0xeab308, wireframe: true });
+            const frontFrameMesh = new THREE.Mesh(frontFrameGeo, frontFrameMat);
+            frontFrameMesh.position.set(0, currentTruck.h / 2, frontZ);
+            truckGroup.add(frontFrameMesh);
+
+            // 4. 前面キャビンを模した目立つイエローバンパー（地面近く）
+            const cabGeo = new THREE.BoxGeometry(frontWidth, 0.4, 0.4);
+            const cabMat = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.3 });
+            const cabMesh = new THREE.Mesh(cabGeo, cabMat);
+            cabMesh.position.set(0, 0.2, frontZ - 0.2);
+            truckGroup.add(cabMesh);
 
             updateStorageArea();
         }
@@ -939,7 +992,7 @@
 
                 cargo.mesh.updateMatrixWorld();
                 tempV.setFromMatrixPosition(cargo.mesh.matrixWorld);
-                tempV.y += (cargo.h / 2) + 0.3; // 荷物のすぐ上に配置
+                tempV.y += (cargo.h / 2) + 0.3;
 
                 tempV.project(camera);
                 if (tempV.z > 1) {
