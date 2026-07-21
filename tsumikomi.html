@@ -71,6 +71,15 @@
         }
         .btn-unload-all:hover { background-color: #475569; }
 
+        .btn-lock-toggle {
+            width: 100%; padding: 9px; background-color: #0284c7; color: white;
+            border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 8px;
+            font-size: 12px; transition: background 0.2s;
+        }
+        .btn-lock-toggle:hover { background-color: #0369a1; }
+        .btn-lock-toggle.locked { background-color: #e11d48; }
+        .btn-lock-toggle.locked:hover { background-color: #be123c; }
+
         #list-panel {
             position: absolute; top: 55px; right: 10px;
             background: rgba(255, 255, 255, 0.98); padding: 12px;
@@ -241,6 +250,7 @@
 
         <button id="add-btn" class="btn-add">🚚 手動入力の荷物を追加</button>
         <button id="unload-all-btn" class="btn-unload-all">📦 荷台の荷物をすべて外に出す</button>
+        <button id="lock-toggle-btn" class="btn-lock-toggle">🔒 積載を確定する（ロック）</button>
 
         <div class="help-text">
             💡 <strong>操作方法:</strong><br>
@@ -312,6 +322,7 @@
 
         let currentTruckType = "10t_wing";
         let currentTruck = TRUCK_SIZES[currentTruckType];
+        let isLocked = false;
 
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xf0f2f5);
@@ -368,17 +379,38 @@
             cabBottomMesh.position.set(0, halfHeight / 2, cabZ);
             truckGroup.add(cabBottomMesh);
 
+            // 赤の線（側面と背面のみ配置、窓の部分＝前面には配置しない）
+            const stripeMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 });
+            
+            const stripeLeftGeo = new THREE.BoxGeometry(0.02, 0.06, cabLength);
+            const stripeLeftMesh = new THREE.Mesh(stripeLeftGeo, stripeMat);
+            stripeLeftMesh.position.set(-cabWidth / 2 - 0.01, halfHeight, cabZ);
+            truckGroup.add(stripeLeftMesh);
+
+            const stripeRightGeo = new THREE.BoxGeometry(0.02, 0.06, cabLength);
+            const stripeRightMesh = new THREE.Mesh(stripeRightGeo, stripeMat);
+            stripeRightMesh.position.set(cabWidth / 2 + 0.01, halfHeight, cabZ);
+            truckGroup.add(stripeRightMesh);
+
+            const stripeBackGeo = new THREE.BoxGeometry(cabWidth, 0.06, 0.02);
+            const stripeBackMesh = new THREE.Mesh(stripeBackGeo, stripeMat);
+            stripeBackMesh.position.set(0, halfHeight, cabZ + cabLength / 2 + 0.01);
+            truckGroup.add(stripeBackMesh);
+
             const cabTopGeo = new THREE.BoxGeometry(cabWidth, halfHeight, cabLength);
             const cabTopMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.3 }); 
             const cabTopMesh = new THREE.Mesh(cabTopGeo, cabTopMat);
             cabTopMesh.position.set(0, halfHeight + halfHeight / 2, cabZ);
             truckGroup.add(cabTopMesh);
 
-            const glassGeo = new THREE.PlaneGeometry(cabWidth * 0.85, cabHeight * 0.35);
+            // 上の白い部分に水色の窓を配置
+            const glassWidth = cabWidth * 0.85;
+            const glassHeight = halfHeight * 0.6;
             const glassMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
-            const glassMesh = new THREE.Mesh(glassGeo, glassMat);
-            glassMesh.position.set(0, cabHeight * 0.65, cabZ - cabLength / 2 - 0.01);
-            truckGroup.add(glassMesh);
+            
+            const frontGlass = new THREE.Mesh(new THREE.PlaneGeometry(glassWidth, glassHeight), glassMat);
+            frontGlass.position.set(0, halfHeight + halfHeight / 2, cabZ - cabLength / 2 - 0.01);
+            truckGroup.add(frontGlass);
 
             const lightGeo = new THREE.BoxGeometry(0.4, 0.25, 0.1);
             const lightMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
@@ -500,7 +532,6 @@
 
             const labelEl = document.createElement('div');
             labelEl.className = 'html-label';
-            // ラベル表示を品名(メモ)のみに変更
             labelEl.innerHTML = `<span class="html-label-memo">${escapeHTML(memo || '荷物')}</span>`;
             labelOverlay.appendChild(labelEl);
 
@@ -514,6 +545,40 @@
             loadedCargos.push(cargoObj);
 
             return cargoObj;
+        }
+
+        function updateLockUI() {
+            const lockBtn = document.getElementById('lock-toggle-btn');
+            const readOnlyTag = document.getElementById('read-only-tag');
+            const addBtn = document.getElementById('add-btn');
+            const unloadAllBtn = document.getElementById('unload-all-btn');
+            const truckTypeSelect = document.getElementById('truck-type');
+
+            if (isLocked) {
+                if (lockBtn) {
+                    lockBtn.textContent = "🔓 ロックを解除する (要PW)";
+                    lockBtn.classList.add('locked');
+                }
+                if (readOnlyTag && !isMobile) {
+                    readOnlyTag.textContent = "🔒 確定済(ロック中)";
+                    readOnlyTag.style.display = 'inline-block';
+                }
+                if (addBtn) addBtn.disabled = true;
+                if (unloadAllBtn) unloadAllBtn.disabled = true;
+                if (truckTypeSelect) truckTypeSelect.disabled = true;
+            } else {
+                if (lockBtn) {
+                    lockBtn.textContent = "🔒 積載を確定する（ロック）";
+                    lockBtn.classList.remove('locked');
+                }
+                if (readOnlyTag && !isMobile) {
+                    readOnlyTag.style.display = 'none';
+                }
+                if (addBtn) addBtn.disabled = false;
+                if (unloadAllBtn) unloadAllBtn.disabled = false;
+                if (truckTypeSelect) truckTypeSelect.disabled = false;
+            }
+            updateSummaryAndList();
         }
 
         async function saveToCloud() {
@@ -536,6 +601,7 @@
                 await setDoc(cargoDocRef, {
                     truckType: currentTruckType,
                     cargos: cargoDataList,
+                    isLocked: isLocked,
                     updatedAt: new Date().toISOString()
                 });
             } catch (e) {
@@ -548,6 +614,10 @@
 
             isRemoteUpdating = true;
             const data = docSnap.data();
+
+            if (data.isLocked !== undefined) {
+                isLocked = data.isLocked;
+            }
 
             if (data.truckType && data.truckType !== currentTruckType) {
                 currentTruckType = data.truckType;
@@ -572,6 +642,7 @@
             }
 
             selectObject(null);
+            updateLockUI();
             isRemoteUpdating = false;
         });
 
@@ -595,7 +666,7 @@
                 const li = document.createElement('li');
                 li.className = 'cargo-item' + (selectedObject === cargo.mesh ? ' selected' : '');
                 
-                let deleteBtnHtml = isMobile ? '' : '<button class="btn-item-delete" title="削除">🗑️</button>';
+                let deleteBtnHtml = (isMobile || isLocked) ? '' : '<button class="btn-item-delete" title="削除">🗑️</button>';
                 
                 li.innerHTML = `
                     <div class="cargo-item-info">
@@ -615,7 +686,7 @@
                     selectObject(cargo.mesh);
                 });
 
-                if (!isMobile) {
+                if (!isMobile && !isLocked) {
                     const delBtnEl = li.querySelector('.btn-item-delete');
                     if (delBtnEl) {
                         delBtnEl.addEventListener('click', (e) => {
@@ -757,7 +828,7 @@
         const offset = new THREE.Vector3();
 
         function onPointerDown(event) {
-            if (isMobile) return; 
+            if (isMobile || isLocked) return; 
             if (event.target.closest('#control-panel') || event.target.closest('#list-panel') || event.target.closest('#ship-header')) return;
 
             const clickY = event.clientY - headerHeight();
@@ -786,7 +857,7 @@
         }
 
         function onPointerMove(event) {
-            if (isMobile || !isDragging || !selectedObject) return;
+            if (isMobile || isLocked || !isDragging || !selectedObject) return;
 
             const clickY = event.clientY - headerHeight();
             const canvasHeight = window.innerHeight - headerHeight();
@@ -811,7 +882,7 @@
         }
 
         function onPointerUp(event) {
-            if (isMobile) return;
+            if (isMobile || isLocked) return;
 
             if (isDragging) {
                 isDragging = false;
@@ -825,7 +896,7 @@
         window.addEventListener('pointerup', onPointerUp);
 
         window.addEventListener('keydown', (e) => {
-            if (isMobile || !selectedObject) return;
+            if (isMobile || isLocked || !selectedObject) return;
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
 
             const step = 0.1;
@@ -842,7 +913,7 @@
         });
 
         function deleteCargo(targetMesh) {
-            if (!targetMesh) return;
+            if (isLocked || !targetMesh) return;
             const index = loadedCargos.findIndex(c => c.mesh === targetMesh);
             if (index !== -1) {
                 const cargo = loadedCargos[index];
@@ -860,6 +931,7 @@
         }
 
         document.getElementById('add-btn').addEventListener('click', () => {
+            if (isLocked) return;
             const memo = document.getElementById('cargo-memo').value || '荷物';
             const weight = parseFloat(document.getElementById('cargo-weight').value) || 0;
             const w = parseFloat(document.getElementById('cargo-w').value);
@@ -874,6 +946,7 @@
         });
 
         document.getElementById('unload-all-btn').addEventListener('click', () => {
+            if (isLocked) return;
             let offsetZ = -currentTruck.l / 2 + 1;
             loadedCargos.forEach(cargo => {
                 cargo.mesh.position.set(-(currentTruck.w / 2 + 4), cargo.h / 2, offsetZ);
@@ -883,7 +956,28 @@
             saveToCloud();
         });
 
+        document.getElementById('lock-toggle-btn').addEventListener('click', () => {
+            if (!isLocked) {
+                if (confirm("積載状態を確定（ロック）しますか？\n他の人が荷物を動かせなくなります。")) {
+                    isLocked = true;
+                    updateLockUI();
+                    saveToCloud();
+                }
+            } else {
+                const pw = prompt("ロックを解除するためのパスワードを入力してください:");
+                if (pw === "3511") {
+                    isLocked = false;
+                    updateLockUI();
+                    saveToCloud();
+                    alert("ロックを解除しました。");
+                } else if (pw !== null) {
+                    alert("パスワードが違います。");
+                }
+            }
+        });
+
         document.getElementById('truck-type').addEventListener('change', (e) => {
+            if (isLocked) return;
             currentTruckType = e.target.value;
             currentTruck = TRUCK_SIZES[currentTruckType];
             updateTruckGeometry();
@@ -895,6 +989,7 @@
         });
 
         document.getElementById('preset-las3000').addEventListener('click', () => {
+            if (isLocked) return;
             const newId = 'cargo_' + Date.now();
             const cargoObj = createCargoMesh(newId, 2.4, 0.5, 6.0, -(currentTruck.w / 2 + 4), 0.25, 0, '0xf87171', 'ラス3000㎡', 3000);
             selectObject(cargoObj.mesh);
@@ -902,6 +997,7 @@
         });
 
         document.getElementById('preset-las5000').addEventListener('click', () => {
+            if (isLocked) return;
             const newId = 'cargo_' + Date.now();
             const cargoObj = createCargoMesh(newId, 2.4, 0.8, 9.6, -(currentTruck.w / 2 + 4), 0.4, 0, '0xf87171', 'ラス5000㎡', 5000);
             selectObject(cargoObj.mesh);
