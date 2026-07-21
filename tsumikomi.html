@@ -71,14 +71,6 @@
         }
         .btn-unload-all:hover { background-color: #475569; }
 
-        .btn-delete {
-            width: 100%; padding: 8px; background-color: #cbd5e1; color: #64748b;
-            border: none; border-radius: 4px; font-weight: bold; cursor: not-allowed; margin-top: 8px;
-            font-size: 12px; transition: all 0.2s;
-        }
-        .btn-delete.active { background-color: #e53e3e !important; color: white !important; cursor: pointer !important; }
-        .btn-delete.active:hover { background-color: #c53030 !important; }
-
         #list-panel {
             position: absolute; top: 55px; right: 10px;
             background: rgba(255, 255, 255, 0.98); padding: 12px;
@@ -116,7 +108,7 @@
 
         .help-text { font-size: 11px; color: #666; margin-top: 10px; line-height: 1.4; border-top: 1px dashed #ddd; padding-top: 8px; }
 
-        /* --- ラベル表示（半透明荷物＆手前角アンカー対応） --- */
+        /* --- ラベル表示 --- */
         #label-svg {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; z-index: 45;
@@ -254,7 +246,6 @@
 
         <button id="add-btn" class="btn-add">🚚 手動入力の荷物を追加</button>
         <button id="unload-all-btn" class="btn-unload-all">📦 荷台の荷物をすべて外に出す</button>
-        <button id="delete-btn" class="btn-delete" disabled>🗑️ 選択した荷物を削除</button>
 
         <div class="help-text">
             💡 <strong>操作方法:</strong><br>
@@ -474,6 +465,7 @@
         const mouse = new THREE.Vector2();
         let selectedObject = null; 
         let isSnapped = false;
+        let isDragging = false;
 
         const labelOverlay = document.getElementById('label-overlay');
         const labelSvg = document.getElementById('label-svg');
@@ -666,23 +658,11 @@
         function selectObject(obj) {
             for(let item of dragObjects) item.material.emissive.set(0x000000);
 
-            const deleteBtn = document.getElementById('delete-btn');
-
             if (obj) {
                 selectedObject = obj;
                 selectedObject.material.emissive.set(0x331111); 
-                if (deleteBtn) {
-                    deleteBtn.removeAttribute('disabled');
-                    deleteBtn.disabled = false;
-                    deleteBtn.classList.add('active');
-                }
             } else {
                 selectedObject = null;
-                if (deleteBtn) {
-                    deleteBtn.setAttribute('disabled', 'true');
-                    deleteBtn.disabled = true;
-                    deleteBtn.classList.remove('active');
-                }
             }
             updateLabelsVisibility();
             updateSummaryAndList();
@@ -794,8 +774,11 @@
             const intersects = raycaster.intersectObjects(dragObjects);
 
             if (intersects.length > 0) {
+                const hitObj = intersects[0].object;
+                selectObject(hitObj);
+
+                isDragging = true;
                 controls.enabled = false; 
-                selectObject(intersects[0].object);
 
                 plane.setFromNormalAndCoplanarPoint(new THREE.Vector3(0, 1, 0), selectedObject.position);
                 if (raycaster.ray.intersectPlane(plane, intersection)) {
@@ -807,7 +790,7 @@
         }
 
         function onPointerMove(event) {
-            if (isMobile || !selectedObject || controls.enabled) return;
+            if (isMobile || !isDragging || !selectedObject) return;
 
             const clickY = event.clientY - headerHeight();
             const canvasHeight = window.innerHeight - headerHeight();
@@ -831,10 +814,12 @@
             }
         }
 
-        function onPointerUp() {
+        function onPointerUp(event) {
             if (isMobile) return;
-            if (selectedObject && !controls.enabled) {
-                controls.enabled = true;
+
+            if (isDragging) {
+                isDragging = false;
+                controls.enabled = true; 
                 saveToCloud();
             }
         }
@@ -900,11 +885,6 @@
             });
             updateSummaryAndList();
             saveToCloud();
-        });
-
-        document.getElementById('delete-btn').addEventListener('click', (e) => {
-            e.preventDefault();
-            if (selectedObject) deleteCargo(selectedObject);
         });
 
         document.getElementById('truck-type').addEventListener('change', (e) => {
