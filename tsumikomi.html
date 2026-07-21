@@ -116,7 +116,7 @@
 
         .help-text { font-size: 11px; color: #666; margin-top: 10px; line-height: 1.4; border-top: 1px dashed #ddd; padding-top: 8px; }
 
-        /* --- ラベル表示（細引き出し線対応） --- */
+        /* --- ラベル表示（半透明荷物＆手前角アンカー対応） --- */
         #label-svg {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; z-index: 45;
@@ -496,17 +496,21 @@
             if (isNaN(colorVal)) colorVal = 0xf87171;
 
             const geo = new THREE.BoxGeometry(w, h, l);
+            // 透明感を持たせる設定 (transparent: true, opacity: 0.7)
             const mat = new THREE.MeshStandardMaterial({ 
                 color: colorVal, 
                 roughness: 0.4,
-                metalness: 0.1
+                metalness: 0.1,
+                transparent: true,
+                opacity: 0.7,
+                depthWrite: false
             });
             const mesh = new THREE.Mesh(geo, mat);
             mesh.position.set(x, y, z);
             mesh.userData = { id, w, h, l, colorHex, memo, weight };
 
             const edges = new THREE.EdgesGeometry(geo);
-            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 }));
+            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1, transparent: true, opacity: 0.8 }));
             mesh.add(line);
 
             scene.add(mesh);
@@ -517,7 +521,6 @@
             labelEl.innerHTML = `<span class="html-label-memo">${escapeHTML(memo || '荷物')}</span>${w.toFixed(1)}×${h.toFixed(1)}×${l.toFixed(1)}m<span class="html-label-weight">${weight}kg</span>`;
             labelOverlay.appendChild(labelEl);
 
-            // 細線のSVG設定
             const lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
             lineEl.setAttribute('stroke', '#334155');
             lineEl.setAttribute('stroke-width', '1');
@@ -936,6 +939,10 @@
 
         const tempV = new THREE.Vector3();
         const anchorV = new THREE.Vector3();
+        const corners = [
+            new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(),
+            new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()
+        ];
 
         function updateLabelsPosition() {
             const widthHalf = window.innerWidth / 2;
@@ -944,11 +951,41 @@
             for (let cargo of loadedCargos) {
                 if (!cargo.labelEl || cargo.labelEl.style.display === 'none') continue;
 
-                anchorV.copy(cargo.mesh.position);
-                anchorV.y += cargo.h / 2;
+                const mesh = cargo.mesh;
+                const hw = cargo.w / 2;
+                const hh = cargo.h / 2;
+                const hl = cargo.l / 2;
+
+                // 荷物の8つの頂点を定義し、ワールド座標に変換して「カメラに最も近い上側の角」を自動検出する
+                corners[0].set(-hw,  hh, -hl);
+                corners[1].set( hw,  hh, -hl);
+                corners[2].set(-hw,  hh,  hl);
+                corners[3].set( hw,  hh,  hl);
+                corners[4].set(-hw, -hh, -hl);
+                corners[5].set( hw, -hh, -hl);
+                corners[6].set(-hw, -hh,  hl);
+                corners[7].set( hw, -hh,  hl);
+
+                for (let i = 0; i < 4; i++) { // 上側の4つの角を対象に最も手前（カメラ方向 Zが最大になる角など）を選ぶ
+                    corners[i].applyMatrix4(mesh.matrixWorld);
+                }
+
+                // カメラから見て最も手前（画面手前側＝カメラ座標系で手前）になる上部の角を決定
+                // ここでは単純にカメラ位置に最も近い上側の角を選択する
+                let closestPoint = corners[0];
+                let minDist = camera.position.distanceTo(corners[0]);
+                for (let i = 1; i < 4; i++) {
+                    const dist = camera.position.distanceTo(corners[i]);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestPoint = corners[i];
+                    }
+                }
+
+                anchorV.copy(closestPoint);
 
                 tempV.copy(anchorV);
-                tempV.y += 0.8; 
+                tempV.y += 0.8; // ラベルを角の少し上に配置
 
                 anchorV.project(camera);
                 tempV.project(camera);
