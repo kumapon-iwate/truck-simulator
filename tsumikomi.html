@@ -247,11 +247,14 @@
         <div class="preset-section">
             <div class="preset-title">⚡ 定番品のクイック追加</div>
             <div class="preset-buttons">
-                <button class="btn-preset" id="preset-las3000">
-                    ① ラス3000㎡ <span>(6.0m / 3.0t)</span>
+                <button class="btn-preset" id="preset-las1000">
+                    ① ラス1000㎡ <span>(2.0m / 1.0t)</span>
                 </button>
-                <button class="btn-preset" id="preset-las5000">
-                    ② ラス5000㎡ <span>(10.0m / 5.0t)</span>
+                <button class="btn-preset" id="preset-las2000">
+                    ② ラス2000㎡ <span>(2.0m / 2.0t)</span>
+                </button>
+                <button class="btn-preset" id="preset-las4000">
+                    ③ ラス4000㎡ <span>(4.0m / 4.0t)</span>
                 </button>
             </div>
         </div>
@@ -267,11 +270,11 @@
 
         <div class="input-group">
             <label style="font-weight: bold; color: #2563eb;">📝 メモ (品名等):</label>
-            <input type="text" id="cargo-memo" value="ラス3000㎡" placeholder="例: ラス3000㎡">
+            <input type="text" id="cargo-memo" value="ラス1000㎡" placeholder="例: ラス1000㎡">
         </div>
         <div class="input-group">
             <label style="font-weight: bold; color: #d97706;">⚖️ 重量 (kg):</label>
-            <input type="number" id="cargo-weight" value="3000" step="50" min="0">
+            <input type="number" id="cargo-weight" value="1000" step="50" min="0">
         </div>
         <div class="input-group" style="margin-bottom: 12px; background: #fff1f2; padding: 4px 6px; border-radius: 4px; border: 1px solid #fecdd3;">
             <label style="font-weight: bold; color: #e11d48; width: 120px;">⚠️ 上積不可:</label>
@@ -280,15 +283,15 @@
 
         <div class="input-group">
             <label>幅 (Xm):</label>
-            <input type="number" id="cargo-w" value="2.4" step="0.1" min="0.1" max="2.5">
+            <input type="number" id="cargo-w" value="1.2" step="0.1" min="0.1" max="2.5">
         </div>
         <div class="input-group">
             <label>高さ (Ym):</label>
-            <input type="number" id="cargo-h" value="0.5" step="0.1" min="0.1" max="2.5">
+            <input type="number" id="cargo-h" value="0.4" step="0.1" min="0.1" max="2.5">
         </div>
         <div class="input-group">
             <label>長さ (Zm):</label>
-            <input type="number" id="cargo-l" value="6.0" step="0.1" min="0.1" max="13.0">
+            <input type="number" id="cargo-l" value="2.0" step="0.1" min="0.1" max="13.0">
         </div>
         <div class="input-group">
             <label>積み込み場所:</label>
@@ -1196,18 +1199,26 @@
             updateLabelsVisibility();
         });
 
-        document.getElementById('preset-las3000').addEventListener('click', () => {
+        document.getElementById('preset-las1000').addEventListener('click', () => {
             if (isLocked) return;
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 2.4, 0.5, 6.0, -(currentTruck.w / 2 + 4), 0.25, 0, '0xf87171', 'ラス3000㎡', 3000, false, '衣川');
+            const cargoObj = createCargoMesh(newId, 1.2, 0.4, 2.0, -(currentTruck.w / 2 + 4), 0.2, 0, '0xf87171', 'ラス1000㎡', 1000, false, '衣川');
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
 
-        document.getElementById('preset-las5000').addEventListener('click', () => {
+        document.getElementById('preset-las2000').addEventListener('click', () => {
             if (isLocked) return;
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 2.4, 0.8, 10.0, -(currentTruck.w / 2 + 4), 0.4, 0, '0xf87171', 'ラス5000㎡', 5000, false, '衣川');
+            const cargoObj = createCargoMesh(newId, 2.4, 0.4, 2.0, -(currentTruck.w / 2 + 4), 0.2, 0, '0xf87171', 'ラス2000㎡', 2000, false, '衣川');
+            selectObject(cargoObj.mesh);
+            saveToCloud();
+        });
+
+        document.getElementById('preset-las4000').addEventListener('click', () => {
+            if (isLocked) return;
+            const newId = 'cargo_' + Date.now();
+            const cargoObj = createCargoMesh(newId, 2.4, 0.4, 4.0, -(currentTruck.w / 2 + 4), 0.2, 0, '0xf87171', 'ラス4000㎡', 4000, false, '衣川');
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
