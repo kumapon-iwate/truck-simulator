@@ -190,13 +190,20 @@
 
             #list-panel {
                 top: 48px; right: 8px; width: calc(100% - 16px);
-                max-width: 340px; max-height: calc(100vh - 120px);
+                max-width: 340px; 
+                /* スマホ版：約3段分（ヘッダー・要約・最大3段分のリストが入る高さ）に制限してスクロール表示 */
+                max-height: 190px; 
                 background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(4px);
                 padding: 8px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             }
             .summary-box { padding: 6px 8px; margin-bottom: 6px; }
             .summary-title { font-size: 10px; margin: 0; }
             .summary-weight { font-size: 15px; }
+
+            .cargo-list {
+                max-height: 85px; /* リスト部分を3段程度に制限してスクロール化 */
+                overflow-y: auto;
+            }
 
             .cargo-item { padding: 4px 6px; }
             .cargo-item-name { font-size: 11px; }
@@ -1143,13 +1150,10 @@
                     corners[i].applyMatrix4(mesh.matrixWorld);
                 }
 
-                // 判定：ボトム（1段目）かどうか、またはトップ（2段目以降）かどうか
-                // 誤差を考慮して底面に近いかどうかを判定（底面から0.1m以内なら1段目とみなす）
                 const isBottomLayer = Math.abs(mesh.position.y - hh) < 0.1;
 
                 if (isBottomLayer) {
-                    // 1段目：手前の角（コーナーのうち、Z座標がプラス側で最も手前のもの：左手前または右手前、ここでは右下の手前角 corners[7] もしくは左手前 corners[6] など）
-                    // ここでは手前（Z=+hl）の下側の角（corners[6] または corners[7]）の中からカメラに近い方を選択
+                    // 1段目：手前の角（カメラに近い方の下側手前角）
                     const frontBottomCorners = [corners[6], corners[7]];
                     anchorV.copy(frontBottomCorners[0]);
                     let minDist = camera.position.distanceTo(frontBottomCorners[0]);
@@ -1161,7 +1165,7 @@
                         }
                     }
                 } else {
-                    // 2段目以降：手前（Z=+hl）の上の辺の中央
+                    // 2段目以降：手前（Z=+hl）の手前上の辺の中央
                     anchorV.copy(corners[2]).add(corners[3]).multiplyScalar(0.5);
                 }
 
