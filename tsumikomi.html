@@ -191,8 +191,8 @@
             #list-panel {
                 top: 48px; right: 8px; width: calc(100% - 16px);
                 max-width: 340px; 
-                /* スマホ版：約6段分の高さ（リスト部分を含めて約6段が収まるサイズ）に制限してスクロール表示 */
-                max-height: 280px; 
+                /* スマホ版：約5段分の高さに制限 */
+                max-height: 245px; 
                 background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(4px);
                 padding: 8px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             }
@@ -201,7 +201,7 @@
             .summary-weight { font-size: 15px; }
 
             .cargo-list {
-                max-height: 175px; /* リスト部分を約6段程度に制限してスクロール化 */
+                max-height: 140px; /* 約5段分の高さ */
                 overflow-y: auto;
             }
 
