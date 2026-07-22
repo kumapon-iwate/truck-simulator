@@ -1114,7 +1114,8 @@
         document.getElementById('preset-las5000').addEventListener('click', () => {
             if (isLocked) return;
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 2.4, 0.8, 9.6, -(currentTruck.w / 2 + 4), 0.4, 0, '0xf87171', 'ラス5000㎡', 5000, false, '衣川');
+            // 長さ(Z)を 10.0 に修正
+            const cargoObj = createCargoMesh(newId, 2.4, 0.8, 10.0, -(currentTruck.w / 2 + 4), 0.4, 0, '0xf87171', 'ラス5000㎡', 5000, false, '衣川');
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
