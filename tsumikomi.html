@@ -27,6 +27,9 @@
             background: #e11d48; color: white; font-size: 10px; font-weight: bold;
             padding: 2px 6px; border-radius: 10px; display: none; white-space: nowrap;
         }
+        .read-only-badge.unlocked {
+            background: #059669; color: white;
+        }
 
         #control-panel {
             position: absolute; top: 55px; left: 10px;
@@ -146,7 +149,7 @@
         .dot-maesawa { background-color: #f59e0b; }
         .dot-jnt { background-color: #10b981; }
 
-        /* --- ラベル表示（枠・背景なし、引き出し線付き） --- */
+        /* --- ラベル表示 --- */
         .html-label {
             position: absolute; z-index: 50; 
             color: #0f172a;
@@ -222,7 +225,7 @@
         <div class="ship-info">
             <span id="display-date" class="ship-date">----/--/--</span>
             <span id="display-dest" class="ship-dest">-----便</span>
-            <span id="read-only-tag" class="read-only-badge">👁️ 閲覧</span>
+            <span id="read-only-tag" class="read-only-badge">🔓 積載は確定してません</span>
         </div>
         <div style="width: 40px;"></div>
     </div>
@@ -352,8 +355,6 @@
         if (isMobile) {
             const controlPanel = document.getElementById('control-panel');
             if (controlPanel) controlPanel.style.display = 'none';
-            const readOnlyTag = document.getElementById('read-only-tag');
-            if (readOnlyTag) readOnlyTag.style.display = 'inline-block';
         }
 
         const params = new URLSearchParams(window.location.search);
@@ -622,8 +623,9 @@
                     lockBtn.textContent = "🔓 ロックを解除する (要PW)";
                     lockBtn.classList.add('locked');
                 }
-                if (readOnlyTag && !isMobile) {
-                    readOnlyTag.textContent = "🔒 確定済(ロック中)";
+                if (readOnlyTag) {
+                    readOnlyTag.textContent = "🔒 積載確定";
+                    readOnlyTag.classList.remove('unlocked');
                     readOnlyTag.style.display = 'inline-block';
                 }
                 if (addBtn) addBtn.disabled = true;
@@ -634,8 +636,10 @@
                     lockBtn.textContent = "🔒 積載を確定する（ロック）";
                     lockBtn.classList.remove('locked');
                 }
-                if (readOnlyTag && !isMobile) {
-                    readOnlyTag.style.display = 'none';
+                if (readOnlyTag) {
+                    readOnlyTag.textContent = "🔓 積載は確定してません";
+                    readOnlyTag.classList.add('unlocked');
+                    readOnlyTag.style.display = 'inline-block';
                 }
                 if (addBtn) addBtn.disabled = false;
                 if (unloadAllBtn) unloadAllBtn.disabled = false;
@@ -1120,7 +1124,6 @@
         const worldNormal = new THREE.Vector3();
         const faceCenterWorld = new THREE.Vector3();
 
-        // 6つの面の「ローカル中心座標」と「ローカル法線ベクトル」の定義
         const CUBE_FACES = [
             { name: '+X', normal: new THREE.Vector3(1, 0, 0),  getOffset: (w, h, l) => new THREE.Vector3(w / 2, 0, 0) },
             { name: '-X', normal: new THREE.Vector3(-1, 0, 0), getOffset: (w, h, l) => new THREE.Vector3(-w / 2, 0, 0) },
@@ -1139,17 +1142,13 @@
 
                 const mesh = cargo.mesh;
 
-                // 1. カメラの視線ベクトル（カメラから注視点への方向）を取得
                 camera.getWorldDirection(cameraDir);
 
-                // 2. カメラに最も直面している（カメラ方向と逆を向いている）面を判定
                 let bestDot = 1.0; 
                 let bestFace = CUBE_FACES[0];
 
                 for (let face of CUBE_FACES) {
-                    // 法線ベクトルをワールド座標系に変換
                     worldNormal.copy(face.normal).transformDirection(mesh.matrixWorld);
-                    // 内積を計算（最も小さくなる＝カメラの反対向き＝一番手前を向いている面）
                     const dot = worldNormal.dot(cameraDir);
                     if (dot < bestDot) {
                         bestDot = dot;
@@ -1157,11 +1156,9 @@
                     }
                 }
 
-                // 3. 最も手前を向いている面の中央座標を計算
                 const localOffset = bestFace.getOffset(cargo.w, cargo.h, cargo.l);
                 faceCenterWorld.copy(localOffset).applyMatrix4(mesh.matrixWorld);
 
-                // 4. 面の中央座標を画面（2D）座標に変換
                 tempV.copy(faceCenterWorld);
                 tempV.project(camera);
 
@@ -1174,7 +1171,6 @@
                 const startScreenX = (tempV.x * widthHalf) + widthHalf;
                 const startScreenY = -(tempV.y * heightHalf) + heightHalf + headerHeight();
 
-                // 5. 面の中央から右上斜め方向へ少し離した位置にラベルを配置
                 const labelScreenX = startScreenX + 35;
                 const labelScreenY = startScreenY - 30;
 
@@ -1182,7 +1178,6 @@
                 cargo.labelEl.style.top = `${labelScreenY}px`;
                 cargo.labelEl.style.opacity = '1';
 
-                // 6. SVG引き出し線を更新
                 cargo.lineEl.setAttribute('x1', startScreenX);
                 cargo.lineEl.setAttribute('y1', startScreenY);
                 cargo.lineEl.setAttribute('x2', labelScreenX);
