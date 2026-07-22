@@ -191,8 +191,8 @@
             #list-panel {
                 top: 48px; right: 8px; width: calc(100% - 16px);
                 max-width: 340px; 
-                /* スマホ版：約3段分（ヘッダー・要約・最大3段分のリストが入る高さ）に制限してスクロール表示 */
-                max-height: 190px; 
+                /* スマホ版：約6段分の高さ（リスト部分を含めて約6段が収まるサイズ）に制限してスクロール表示 */
+                max-height: 280px; 
                 background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(4px);
                 padding: 8px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             }
@@ -201,7 +201,7 @@
             .summary-weight { font-size: 15px; }
 
             .cargo-list {
-                max-height: 85px; /* リスト部分を3段程度に制限してスクロール化 */
+                max-height: 175px; /* リスト部分を約6段程度に制限してスクロール化 */
                 overflow-y: auto;
             }
 
@@ -1153,7 +1153,6 @@
                 const isBottomLayer = Math.abs(mesh.position.y - hh) < 0.1;
 
                 if (isBottomLayer) {
-                    // 1段目：手前の角（カメラに近い方の下側手前角）
                     const frontBottomCorners = [corners[6], corners[7]];
                     anchorV.copy(frontBottomCorners[0]);
                     let minDist = camera.position.distanceTo(frontBottomCorners[0]);
@@ -1165,12 +1164,11 @@
                         }
                     }
                 } else {
-                    // 2段目以降：手前（Z=+hl）の手前上の辺の中央
                     anchorV.copy(corners[2]).add(corners[3]).multiplyScalar(0.5);
                 }
 
                 tempV.copy(anchorV);
-                tempV.y += 0.8; // 上方に引き出す
+                tempV.y += 0.8; 
 
                 anchorV.project(camera);
                 tempV.project(camera);
