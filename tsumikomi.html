@@ -239,8 +239,8 @@
                 <option value="4t_flat">4t 平 (6.2m)</option>
                 <option value="4t_wing">4t ウィング (6.2m)</option>
                 <option value="10t_flat">10t 平 (9.6m)</option>
-                <option value="10t_wing" selected>10t ウィング (9.6m)</option>
-                <option value="20t_trailer">20t ウィングトレーラー (13m)</option>
+                <option value="10t_wing">10t ウィング (9.6m)</option>
+                <option value="20t_trailer" selected>20t ウィングトレーラー (段落ち 12.6m)</option>
             </select>
         </div>
 
@@ -316,7 +316,7 @@
         <div class="summary-box">
             <div class="summary-row">
                 <div class="summary-title">積載総重量</div>
-                <div id="mobile-truck-display" class="mobile-truck-badge">10t ウィング</div>
+                <div id="mobile-truck-display" class="mobile-truck-badge">20t ウィングトレーラー</div>
             </div>
             <div id="total-weight" class="summary-weight">0 kg (0.00 t)</div>
         </div>
@@ -373,14 +373,24 @@
         }
 
         const TRUCK_SIZES = {
-            "4t_flat":    { name: "4t 平", w: 2.4, h: 0.8, l: 6.2 },
-            "4t_wing":    { name: "4t ウィング", w: 2.4, h: 2.4, l: 6.2 },
-            "10t_flat":   { name: "10t 平", w: 2.4, h: 0.8, l: 9.6 },
-            "10t_wing":   { name: "10t ウィング", w: 2.4, h: 2.5, l: 9.6 },
-            "20t_trailer":{ name: "20t ウィングトレーラー", w: 2.4, h: 2.5, l: 13.0 }
+            "4t_flat":    { name: "4t 平", w: 2.4, h: 0.8, l: 6.2, isStep: false },
+            "4t_wing":    { name: "4t ウィング", w: 2.4, h: 2.4, l: 6.2, isStep: false },
+            "10t_flat":   { name: "10t 平", w: 2.4, h: 0.8, l: 9.6, isStep: false },
+            "10t_wing":   { name: "10t ウィング", w: 2.4, h: 2.5, l: 9.6, isStep: false },
+            "20t_trailer":{ 
+                name: "20t ウィングトレーラー", 
+                w: 2.405, 
+                l: 12.6, 
+                isStep: true,
+                frontL: 3.2,
+                frontH: 2.235,
+                rearL: 9.4,
+                rearH: 2.535,
+                stepDiff: 0.3 // 2.535 - 2.235 = 0.3m の段差
+            }
         };
 
-        let currentTruckType = "10t_wing";
+        let currentTruckType = "20t_trailer";
         let currentTruck = TRUCK_SIZES[currentTruckType];
         let isLocked = false;
 
@@ -414,21 +424,72 @@
                 truckGroup.remove(truckGroup.children[0]); 
             }
 
-            const truckGeo = new THREE.BoxGeometry(currentTruck.w, currentTruck.h, currentTruck.l);
-            const truckMat = new THREE.MeshBasicMaterial({ color: 0x0284c7, wireframe: true, transparent: true, opacity: 0.4 });
-            const truckMesh = new THREE.Mesh(truckGeo, truckMat);
-            truckMesh.position.set(0, currentTruck.h / 2, 0);
-            truckGroup.add(truckMesh);
-
-            const floorGeo = new THREE.PlaneGeometry(currentTruck.w, currentTruck.l);
+            const wireMat = new THREE.MeshBasicMaterial({ color: 0x0284c7, wireframe: true, transparent: true, opacity: 0.4 });
             const floorMat = new THREE.MeshStandardMaterial({ color: 0x475569, side: THREE.DoubleSide });
-            const floorMesh = new THREE.Mesh(floorGeo, floorMat);
-            floorMesh.rotation.x = -Math.PI / 2;
-            floorMesh.position.set(0, 0.005, 0);
-            truckGroup.add(floorMesh);
 
+            if (currentTruck.isStep) {
+                // --- 段落ち仕様トレーラー ---
+                const totalL = currentTruck.l;
+                const frontL = currentTruck.frontL;
+                const rearL = currentTruck.rearL;
+                const frontH = currentTruck.frontH;
+                const rearH = currentTruck.rearH;
+                const stepDiff = currentTruck.stepDiff;
+                const w = currentTruck.w;
+
+                const frontZ = -totalL / 2 + frontL / 2;
+                const rearZ = totalL / 2 - rearL / 2;
+
+                // 1. ワイヤーフレーム（高床部：前側）
+                const frontGeo = new THREE.BoxGeometry(w, frontH, frontL);
+                const frontMesh = new THREE.Mesh(frontGeo, wireMat);
+                frontMesh.position.set(0, stepDiff + frontH / 2, frontZ);
+                truckGroup.add(frontMesh);
+
+                // 2. ワイヤーフレーム（低床部：後側）
+                const rearGeo = new THREE.BoxGeometry(w, rearH, rearL);
+                const rearMesh = new THREE.Mesh(rearGeo, wireMat);
+                rearMesh.position.set(0, rearH / 2, rearZ);
+                truckGroup.add(rearMesh);
+
+                // 3. 床面（高床部）
+                const frontFloorGeo = new THREE.PlaneGeometry(w, frontL);
+                const frontFloorMesh = new THREE.Mesh(frontFloorGeo, floorMat);
+                frontFloorMesh.rotation.x = -Math.PI / 2;
+                frontFloorMesh.position.set(0, stepDiff + 0.005, frontZ);
+                truckGroup.add(frontFloorMesh);
+
+                // 4. 床面（低床部）
+                const rearFloorGeo = new THREE.PlaneGeometry(w, rearL);
+                const rearFloorMesh = new THREE.Mesh(rearFloorGeo, floorMat);
+                rearFloorMesh.rotation.x = -Math.PI / 2;
+                rearFloorMesh.position.set(0, 0.005, rearZ);
+                truckGroup.add(rearFloorMesh);
+
+                // 5. 床の段差立ち上がり壁
+                const stepWallGeo = new THREE.PlaneGeometry(w, stepDiff);
+                const stepWallMesh = new THREE.Mesh(stepWallGeo, floorMat);
+                stepWallMesh.position.set(0, stepDiff / 2, -totalL / 2 + frontL);
+                truckGroup.add(stepWallMesh);
+
+            } else {
+                // --- 通常フラット仕様 ---
+                const truckGeo = new THREE.BoxGeometry(currentTruck.w, currentTruck.h, currentTruck.l);
+                const truckMesh = new THREE.Mesh(truckGeo, wireMat);
+                truckMesh.position.set(0, currentTruck.h / 2, 0);
+                truckGroup.add(truckMesh);
+
+                const floorGeo = new THREE.PlaneGeometry(currentTruck.w, currentTruck.l);
+                const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+                floorMesh.rotation.x = -Math.PI / 2;
+                floorMesh.position.set(0, 0.005, 0);
+                truckGroup.add(floorMesh);
+            }
+
+            // --- キャビン描画 ---
             const cabWidth = currentTruck.w;
-            const cabHeight = Math.max(currentTruck.h, 2.2);
+            const maxH = currentTruck.isStep ? currentTruck.rearH : currentTruck.h;
+            const cabHeight = Math.max(maxH, 2.2);
             const cabLength = 1.8;
             const cabZ = -currentTruck.l / 2 - cabLength / 2;
             const halfHeight = cabHeight / 2;
@@ -846,12 +907,26 @@
             updateSummaryAndList();
         }
 
+        function calculateBaseYAt(posX, posZ) {
+            if (!currentTruck.isStep) return 0;
+
+            const totalL = currentTruck.l;
+            const frontL = currentTruck.frontL;
+            const stepZ = -totalL / 2 + frontL; // 高床と低床の境目Z座標
+
+            const inTruckX = Math.abs(posX) <= (currentTruck.w / 2 + 0.1);
+            if (inTruckX && posZ < stepZ) {
+                return currentTruck.stepDiff; // 高床部ベース高さ (+0.3m)
+            }
+            return 0; // 低床部およびトラック外ベース高さ (0.0m)
+        }
+
         function calculateSurfaceY(targetMesh) {
             const targetW = targetMesh.geometry.parameters.width;
             const targetH = targetMesh.geometry.parameters.height;
             const targetL = targetMesh.geometry.parameters.depth;
 
-            let highestY = 0; 
+            let highestY = calculateBaseYAt(targetMesh.position.x, targetMesh.position.z); 
 
             for (let other of dragObjects) {
                 if (other === targetMesh) continue;
@@ -894,6 +969,13 @@
 
                 if (Math.abs(newZ - truckMinZ) < SNAP_THRESHOLD) { newZ = truckMinZ; snappedNow = true; }
                 else if (Math.abs(newZ - truckMaxZ) < SNAP_THRESHOLD) { newZ = truckMaxZ; snappedNow = true; }
+
+                // 段落ち境界でのZスナップ
+                if (currentTruck.isStep) {
+                    const stepZ = -currentTruck.l / 2 + currentTruck.frontL;
+                    if (Math.abs(newZ - (stepZ - targetL / 2)) < SNAP_THRESHOLD) { newZ = stepZ - targetL / 2; snappedNow = true; }
+                    if (Math.abs(newZ - (stepZ + targetL / 2)) < SNAP_THRESHOLD) { newZ = stepZ + targetL / 2; snappedNow = true; }
+                }
 
                 for (let other of dragObjects) {
                     if (other === targetMesh) continue;
@@ -1016,7 +1098,8 @@
                 saveToCloud();
             } else if (e.key === 's' || e.key === 'S') {
                 const targetH = selectedObject.geometry.parameters.height;
-                if (selectedObject.position.y - step >= targetH / 2) {
+                const baseY = calculateBaseYAt(selectedObject.position.x, selectedObject.position.z);
+                if (selectedObject.position.y - step >= baseY + targetH / 2) {
                     selectedObject.position.y -= step;
                     saveToCloud();
                 }
@@ -1114,7 +1197,6 @@
         document.getElementById('preset-las5000').addEventListener('click', () => {
             if (isLocked) return;
             const newId = 'cargo_' + Date.now();
-            // 長さ(Z)を 10.0 に修正
             const cargoObj = createCargoMesh(newId, 2.4, 0.8, 10.0, -(currentTruck.w / 2 + 4), 0.4, 0, '0xf87171', 'ラス5000㎡', 5000, false, '衣川');
             selectObject(cargoObj.mesh);
             saveToCloud();
