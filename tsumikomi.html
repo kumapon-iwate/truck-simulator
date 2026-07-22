@@ -146,40 +146,38 @@
         .dot-maesawa { background-color: #f59e0b; }
         .dot-jnt { background-color: #10b981; }
 
-        /* --- ラベル表示 --- */
-        #label-svg {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 45;
-            filter: drop-shadow(0px 1px 1px rgba(255, 255, 255, 0.8));
-        }
-
+        /* --- ラベル表示（枠・背景なし、引き出し線付き） --- */
         .html-label {
             position: absolute; z-index: 50; 
             color: #0f172a;
             background: transparent;
             border: none;
-            padding: 0;
-            font-size: 12px; font-weight: bold; pointer-events: none; white-space: nowrap;
-            text-align: center; line-height: 1.3; 
-            transform: translate(-50%, -100%); display: none;
-            filter: drop-shadow(0px 1px 2px rgba(255, 255, 255, 0.9)) 
-                    drop-shadow(0px 0px 4px rgba(255, 255, 255, 0.9));
+            padding: 0px 4px;
+            font-size: 11px; font-weight: bold; pointer-events: none; white-space: nowrap;
+            text-align: left; line-height: 1.2; 
+            box-shadow: none;
+            transform: translate(0, -50%); display: none;
+            text-shadow: 
+                -1px -1px 0 #fff, 
+                 1px -1px 0 #fff, 
+                -1px  1px 0 #fff, 
+                 1px  1px 0 #fff;
         }
         .html-label-memo { 
-            color: #1e3a8a; 
-            font-size: 13px; 
+            color: #0f172a; 
+            font-size: 11px; 
             display: inline; 
-            font-weight: 800;
+            font-weight: bold;
         }
         .html-label-nostack {
             color: #dc2626;
-            font-size: 12px;
+            font-size: 9px;
             font-weight: bold;
             background: #fee2e2;
             border: 1px solid #f87171;
-            padding: 1px 4px;
-            border-radius: 3px;
-            margin-right: 4px;
+            padding: 0px 2px;
+            border-radius: 2px;
+            margin-right: 2px;
         }
 
         @media screen and (max-width: 768px) {
@@ -191,7 +189,6 @@
             #list-panel {
                 top: 48px; right: 8px; width: calc(100% - 16px);
                 max-width: 340px; 
-                /* スマホ版：約5段分の高さに制限 */
                 max-height: 245px; 
                 background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(4px);
                 padding: 8px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -201,7 +198,7 @@
             .summary-weight { font-size: 15px; }
 
             .cargo-list {
-                max-height: 140px; /* 約5段分の高さ */
+                max-height: 140px;
                 overflow-y: auto;
             }
 
@@ -209,8 +206,8 @@
             .cargo-item-name { font-size: 11px; }
             .cargo-item-detail { font-size: 10px; }
 
-            .html-label { font-size: 11px; }
-            .html-label-memo { font-size: 12px; }
+            .html-label { font-size: 10px; }
+            .html-label-memo { font-size: 10px; }
 
             #mobile-legend-bar { display: flex; }
         }
@@ -331,9 +328,9 @@
         <div class="legend-item"><span class="legend-dot dot-jnt"></span>JNT 緑</div>
     </div>
 
-    <div id="label-overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:40;">
-        <svg id="label-svg"></svg>
-    </div>
+    <!-- 引き出し線描画用SVGキャンバス -->
+    <svg id="leader-line-svg" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:39;"></svg>
+    <div id="label-overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:40;"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -560,7 +557,7 @@
         let isDragging = false;
 
         const labelOverlay = document.getElementById('label-overlay');
-        const labelSvg = document.getElementById('label-svg');
+        const leaderLineSvg = document.getElementById('leader-line-svg');
         const cargoListEl = document.getElementById('cargo-list');
         const totalWeightEl = document.getElementById('total-weight');
         const cargoCountEl = document.getElementById('cargo-count');
@@ -602,10 +599,10 @@
             labelOverlay.appendChild(labelEl);
 
             const lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            lineEl.setAttribute('stroke', '#334155');
-            lineEl.setAttribute('stroke-width', '1');
-            lineEl.setAttribute('stroke-dasharray', '2,2');
-            labelSvg.appendChild(lineEl);
+            lineEl.setAttribute('stroke', '#ef4444');
+            lineEl.setAttribute('stroke-width', '1.5');
+            lineEl.style.display = 'none';
+            leaderLineSvg.appendChild(lineEl);
 
             const cargoObj = { id, mesh, w, h, l, colorHex, memo, weight, noStack, location, labelEl, lineEl };
             loadedCargos.push(cargoObj);
@@ -819,8 +816,8 @@
             const mode = isMobile ? 'all' : (labelModeEl ? labelModeEl.value : 'selected');
             for (let cargo of loadedCargos) {
                 const element = cargo.labelEl;
-                const line = cargo.lineEl;
-                if (!element) continue;
+                const lineEl = cargo.lineEl;
+                if (!element || !lineEl) continue;
 
                 let show = false;
                 if (mode === 'all') show = true;
@@ -828,7 +825,7 @@
                 else if (mode === 'none') show = false;
 
                 element.style.display = show ? 'block' : 'none';
-                if (line) line.style.display = show ? 'block' : 'none';
+                lineEl.style.display = show ? 'block' : 'none';
             }
         }
 
@@ -1119,10 +1116,18 @@
         });
 
         const tempV = new THREE.Vector3();
-        const anchorV = new THREE.Vector3();
-        const corners = [
-            new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(),
-            new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()
+        const cameraDir = new THREE.Vector3();
+        const worldNormal = new THREE.Vector3();
+        const faceCenterWorld = new THREE.Vector3();
+
+        // 6つの面の「ローカル中心座標」と「ローカル法線ベクトル」の定義
+        const CUBE_FACES = [
+            { name: '+X', normal: new THREE.Vector3(1, 0, 0),  getOffset: (w, h, l) => new THREE.Vector3(w / 2, 0, 0) },
+            { name: '-X', normal: new THREE.Vector3(-1, 0, 0), getOffset: (w, h, l) => new THREE.Vector3(-w / 2, 0, 0) },
+            { name: '+Y', normal: new THREE.Vector3(0, 1, 0),  getOffset: (w, h, l) => new THREE.Vector3(0, h / 2, 0) },
+            { name: '-Y', normal: new THREE.Vector3(0, -1, 0), getOffset: (w, h, l) => new THREE.Vector3(0, -h / 2, 0) },
+            { name: '+Z', normal: new THREE.Vector3(0, 0, 1),  getOffset: (w, h, l) => new THREE.Vector3(0, 0, l / 2) },
+            { name: '-Z', normal: new THREE.Vector3(0, 0, -1), getOffset: (w, h, l) => new THREE.Vector3(0, 0, -l / 2) }
         ];
 
         function updateLabelsPosition() {
@@ -1130,72 +1135,59 @@
             const heightHalf = (window.innerHeight - headerHeight()) / 2;
 
             for (let cargo of loadedCargos) {
-                if (!cargo.labelEl || cargo.labelEl.style.display === 'none') continue;
+                if (!cargo.labelEl || !cargo.lineEl || cargo.labelEl.style.display === 'none') continue;
 
                 const mesh = cargo.mesh;
-                const hw = cargo.w / 2;
-                const hh = cargo.h / 2;
-                const hl = cargo.l / 2;
 
-                corners[0].set(-hw,  hh, -hl);
-                corners[1].set( hw,  hh, -hl);
-                corners[2].set(-hw,  hh,  hl);
-                corners[3].set( hw,  hh,  hl);
-                corners[4].set(-hw, -hh, -hl);
-                corners[5].set( hw, -hh, -hl);
-                corners[6].set(-hw, -hh,  hl);
-                corners[7].set( hw, -hh,  hl);
+                // 1. カメラの視線ベクトル（カメラから注視点への方向）を取得
+                camera.getWorldDirection(cameraDir);
 
-                for (let i = 0; i < 8; i++) {
-                    corners[i].applyMatrix4(mesh.matrixWorld);
-                }
+                // 2. カメラに最も直面している（カメラ方向と逆を向いている）面を判定
+                let bestDot = 1.0; 
+                let bestFace = CUBE_FACES[0];
 
-                const isBottomLayer = Math.abs(mesh.position.y - hh) < 0.1;
-
-                if (isBottomLayer) {
-                    const frontBottomCorners = [corners[6], corners[7]];
-                    anchorV.copy(frontBottomCorners[0]);
-                    let minDist = camera.position.distanceTo(frontBottomCorners[0]);
-                    for (let i = 1; i < frontBottomCorners.length; i++) {
-                        const dist = camera.position.distanceTo(frontBottomCorners[i]);
-                        if (dist < minDist) {
-                            minDist = dist;
-                            anchorV.copy(frontBottomCorners[i]);
-                        }
+                for (let face of CUBE_FACES) {
+                    // 法線ベクトルをワールド座標系に変換
+                    worldNormal.copy(face.normal).transformDirection(mesh.matrixWorld);
+                    // 内積を計算（最も小さくなる＝カメラの反対向き＝一番手前を向いている面）
+                    const dot = worldNormal.dot(cameraDir);
+                    if (dot < bestDot) {
+                        bestDot = dot;
+                        bestFace = face;
                     }
-                } else {
-                    anchorV.copy(corners[2]).add(corners[3]).multiplyScalar(0.5);
                 }
 
-                tempV.copy(anchorV);
-                tempV.y += 0.8; 
+                // 3. 最も手前を向いている面の中央座標を計算
+                const localOffset = bestFace.getOffset(cargo.w, cargo.h, cargo.l);
+                faceCenterWorld.copy(localOffset).applyMatrix4(mesh.matrixWorld);
 
-                anchorV.project(camera);
+                // 4. 面の中央座標を画面（2D）座標に変換
+                tempV.copy(faceCenterWorld);
                 tempV.project(camera);
 
-                if (tempV.z > 1 || anchorV.z > 1) {
+                if (tempV.z > 1) {
                     cargo.labelEl.style.opacity = '0';
-                    if (cargo.lineEl) cargo.lineEl.style.opacity = '0';
+                    cargo.lineEl.style.display = 'none';
                     continue;
                 }
 
-                const anchorX = (anchorV.x * widthHalf) + widthHalf;
-                const anchorY = -(anchorV.y * heightHalf) + heightHalf + headerHeight();
+                const startScreenX = (tempV.x * widthHalf) + widthHalf;
+                const startScreenY = -(tempV.y * heightHalf) + heightHalf + headerHeight();
 
-                const labelX = (tempV.x * widthHalf) + widthHalf;
-                const labelY = -(tempV.y * heightHalf) + heightHalf + headerHeight();
+                // 5. 面の中央から右上斜め方向へ少し離した位置にラベルを配置
+                const labelScreenX = startScreenX + 35;
+                const labelScreenY = startScreenY - 30;
 
-                cargo.labelEl.style.left = `${labelX}px`;
-                cargo.labelEl.style.top = `${labelY}px`;
+                cargo.labelEl.style.left = `${labelScreenX}px`;
+                cargo.labelEl.style.top = `${labelScreenY}px`;
                 cargo.labelEl.style.opacity = '1';
 
-                if (cargo.lineEl) {
-                    cargo.lineEl.setAttribute('x1', anchorX);
-                    cargo.lineEl.setAttribute('y1', anchorY);
-                    cargo.lineEl.setAttribute('x2', labelX);
-                    cargo.lineEl.setAttribute('y2', labelY);
-                    cargo.lineEl.style.opacity = '1';
-                }
+                // 6. SVG引き出し線を更新
+                cargo.lineEl.setAttribute('x1', startScreenX);
+                cargo.lineEl.setAttribute('y1', startScreenY);
+                cargo.lineEl.setAttribute('x2', labelScreenX);
+                cargo.lineEl.setAttribute('y2', labelScreenY);
+                cargo.lineEl.style.display = 'block';
             }
         }
 
