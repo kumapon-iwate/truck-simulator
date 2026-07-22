@@ -130,6 +130,22 @@
 
         .help-text { font-size: 11px; color: #666; margin-top: 10px; line-height: 1.4; border-top: 1px dashed #ddd; padding-top: 8px; }
 
+        /* --- モバイル用下部カラー凡例 --- */
+        #mobile-legend-bar {
+            display: none;
+            position: absolute; bottom: 0; left: 0; width: 100%;
+            background: rgba(15, 23, 42, 0.95); color: white;
+            padding: 6px 10px; z-index: 150; box-sizing: border-box;
+            justify-content: space-around; align-items: center;
+            border-top: 2px solid #0284c7; font-size: 11px; font-weight: bold;
+        }
+        .legend-item { display: flex; align-items: center; gap: 4px; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .dot-kinugawa { background-color: #f87171; }
+        .dot-inter { background-color: #3b82f6; }
+        .dot-maesawa { background-color: #f59e0b; }
+        .dot-jnt { background-color: #10b981; }
+
         /* --- ラベル表示 --- */
         #label-svg {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
@@ -174,7 +190,7 @@
 
             #list-panel {
                 top: 48px; right: 8px; width: calc(100% - 16px);
-                max-width: 340px; max-height: 220px;
+                max-width: 340px; max-height: calc(100vh - 120px);
                 background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(4px);
                 padding: 8px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             }
@@ -188,6 +204,8 @@
 
             .html-label { font-size: 11px; }
             .html-label-memo { font-size: 12px; }
+
+            #mobile-legend-bar { display: flex; }
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -297,6 +315,13 @@
         </div>
         <div style="font-size: 11px; font-weight: bold; color: #475569; margin-bottom: 4px;">📦 全荷物 (<span id="cargo-count">0</span>個)</div>
         <ul id="cargo-list" class="cargo-list"></ul>
+    </div>
+
+    <div id="mobile-legend-bar">
+        <div class="legend-item"><span class="legend-dot dot-kinugawa"></span>衣川 薄赤</div>
+        <div class="legend-item"><span class="legend-dot dot-inter"></span>インター 青</div>
+        <div class="legend-item"><span class="legend-dot dot-maesawa"></span>前沢 オレンジ</div>
+        <div class="legend-item"><span class="legend-dot dot-jnt"></span>JNT 緑</div>
     </div>
 
     <div id="label-overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:40;">
@@ -1114,24 +1139,34 @@
                 corners[6].set(-hw, -hh,  hl);
                 corners[7].set( hw, -hh,  hl);
 
-                for (let i = 0; i < 4; i++) {
+                for (let i = 0; i < 8; i++) {
                     corners[i].applyMatrix4(mesh.matrixWorld);
                 }
 
-                let closestPoint = corners[0];
-                let minDist = camera.position.distanceTo(corners[0]);
-                for (let i = 1; i < 4; i++) {
-                    const dist = camera.position.distanceTo(corners[i]);
-                    if (dist < minDist) {
-                        minDist = dist;
-                        closestPoint = corners[i];
+                // 判定：ボトム（1段目）かどうか、またはトップ（2段目以降）かどうか
+                // 誤差を考慮して底面に近いかどうかを判定（底面から0.1m以内なら1段目とみなす）
+                const isBottomLayer = Math.abs(mesh.position.y - hh) < 0.1;
+
+                if (isBottomLayer) {
+                    // 1段目：手前の角（コーナーのうち、Z座標がプラス側で最も手前のもの：左手前または右手前、ここでは右下の手前角 corners[7] もしくは左手前 corners[6] など）
+                    // ここでは手前（Z=+hl）の下側の角（corners[6] または corners[7]）の中からカメラに近い方を選択
+                    const frontBottomCorners = [corners[6], corners[7]];
+                    anchorV.copy(frontBottomCorners[0]);
+                    let minDist = camera.position.distanceTo(frontBottomCorners[0]);
+                    for (let i = 1; i < frontBottomCorners.length; i++) {
+                        const dist = camera.position.distanceTo(frontBottomCorners[i]);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            anchorV.copy(frontBottomCorners[i]);
+                        }
                     }
+                } else {
+                    // 2段目以降：手前（Z=+hl）の上の辺の中央
+                    anchorV.copy(corners[2]).add(corners[3]).multiplyScalar(0.5);
                 }
 
-                anchorV.copy(closestPoint);
-
                 tempV.copy(anchorV);
-                tempV.y += 0.8; 
+                tempV.y += 0.8; // 上方に引き出す
 
                 anchorV.project(camera);
                 tempV.project(camera);
