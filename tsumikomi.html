@@ -386,7 +386,7 @@
                 frontH: 2.235,
                 rearL: 9.4,
                 rearH: 2.535,
-                stepDiff: 0.3 // 2.535 - 2.235 = 0.3m の段差
+                stepDiff: 0.3 
             }
         };
 
@@ -428,7 +428,6 @@
             const floorMat = new THREE.MeshStandardMaterial({ color: 0x475569, side: THREE.DoubleSide });
 
             if (currentTruck.isStep) {
-                // --- 段落ち仕様トレーラー ---
                 const totalL = currentTruck.l;
                 const frontL = currentTruck.frontL;
                 const rearL = currentTruck.rearL;
@@ -440,40 +439,34 @@
                 const frontZ = -totalL / 2 + frontL / 2;
                 const rearZ = totalL / 2 - rearL / 2;
 
-                // 1. ワイヤーフレーム（高床部：前側）
                 const frontGeo = new THREE.BoxGeometry(w, frontH, frontL);
                 const frontMesh = new THREE.Mesh(frontGeo, wireMat);
                 frontMesh.position.set(0, stepDiff + frontH / 2, frontZ);
                 truckGroup.add(frontMesh);
 
-                // 2. ワイヤーフレーム（低床部：後側）
                 const rearGeo = new THREE.BoxGeometry(w, rearH, rearL);
                 const rearMesh = new THREE.Mesh(rearGeo, wireMat);
                 rearMesh.position.set(0, rearH / 2, rearZ);
                 truckGroup.add(rearMesh);
 
-                // 3. 床面（高床部）
                 const frontFloorGeo = new THREE.PlaneGeometry(w, frontL);
                 const frontFloorMesh = new THREE.Mesh(frontFloorGeo, floorMat);
                 frontFloorMesh.rotation.x = -Math.PI / 2;
                 frontFloorMesh.position.set(0, stepDiff + 0.005, frontZ);
                 truckGroup.add(frontFloorMesh);
 
-                // 4. 床面（低床部）
                 const rearFloorGeo = new THREE.PlaneGeometry(w, rearL);
                 const rearFloorMesh = new THREE.Mesh(rearFloorGeo, floorMat);
                 rearFloorMesh.rotation.x = -Math.PI / 2;
                 rearFloorMesh.position.set(0, 0.005, rearZ);
                 truckGroup.add(rearFloorMesh);
 
-                // 5. 床の段差立ち上がり壁
                 const stepWallGeo = new THREE.PlaneGeometry(w, stepDiff);
                 const stepWallMesh = new THREE.Mesh(stepWallGeo, floorMat);
                 stepWallMesh.position.set(0, stepDiff / 2, -totalL / 2 + frontL);
                 truckGroup.add(stepWallMesh);
 
             } else {
-                // --- 通常フラット仕様 ---
                 const truckGeo = new THREE.BoxGeometry(currentTruck.w, currentTruck.h, currentTruck.l);
                 const truckMesh = new THREE.Mesh(truckGeo, wireMat);
                 truckMesh.position.set(0, currentTruck.h / 2, 0);
@@ -523,14 +516,32 @@
             cabTopMesh.position.set(0, halfHeight + halfHeight / 2, cabZ);
             truckGroup.add(cabTopMesh);
 
-            const glassWidth = cabWidth * 0.85;
-            const glassHeight = halfHeight * 0.6;
             const glassMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
             
+            // 正面ガラス
+            const glassWidth = cabWidth * 0.85;
+            const glassHeight = halfHeight * 0.6;
             const frontGlass = new THREE.Mesh(new THREE.PlaneGeometry(glassWidth, glassHeight), glassMat);
             frontGlass.position.set(0, halfHeight + halfHeight / 2, cabZ - cabLength / 2 - 0.01);
             truckGroup.add(frontGlass);
 
+            // 側面ガラス（左右）
+            const sideGlassLength = cabLength * 0.55;
+            const sideGlass = new THREE.Mesh(new THREE.PlaneGeometry(sideGlassLength, glassHeight), glassMat);
+            
+            // 左側面窓
+            const leftSideGlass = sideGlass.clone();
+            leftSideGlass.rotation.y = Math.PI / 2;
+            leftSideGlass.position.set(-cabWidth / 2 - 0.01, halfHeight + halfHeight / 2, cabZ);
+            truckGroup.add(leftSideGlass);
+
+            // 右側面窓
+            const rightSideGlass = sideGlass.clone();
+            rightSideGlass.rotation.y = -Math.PI / 2;
+            rightSideGlass.position.set(cabWidth / 2 + 0.01, halfHeight + halfHeight / 2, cabZ);
+            truckGroup.add(rightSideGlass);
+
+            // ヘッドライト
             const lightGeo = new THREE.BoxGeometry(0.4, 0.25, 0.1);
             const lightMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
             const leftLight = new THREE.Mesh(lightGeo, lightMat);
@@ -912,13 +923,13 @@
 
             const totalL = currentTruck.l;
             const frontL = currentTruck.frontL;
-            const stepZ = -totalL / 2 + frontL; // 高床と低床の境目Z座標
+            const stepZ = -totalL / 2 + frontL; 
 
             const inTruckX = Math.abs(posX) <= (currentTruck.w / 2 + 0.1);
             if (inTruckX && posZ < stepZ) {
-                return currentTruck.stepDiff; // 高床部ベース高さ (+0.3m)
+                return currentTruck.stepDiff; 
             }
-            return 0; // 低床部およびトラック外ベース高さ (0.0m)
+            return 0; 
         }
 
         function calculateSurfaceY(targetMesh) {
@@ -970,7 +981,6 @@
                 if (Math.abs(newZ - truckMinZ) < SNAP_THRESHOLD) { newZ = truckMinZ; snappedNow = true; }
                 else if (Math.abs(newZ - truckMaxZ) < SNAP_THRESHOLD) { newZ = truckMaxZ; snappedNow = true; }
 
-                // 段落ち境界でのZスナップ
                 if (currentTruck.isStep) {
                     const stepZ = -currentTruck.l / 2 + currentTruck.frontL;
                     if (Math.abs(newZ - (stepZ - targetL / 2)) < SNAP_THRESHOLD) { newZ = stepZ - targetL / 2; snappedNow = true; }
