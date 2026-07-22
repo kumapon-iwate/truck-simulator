@@ -10,9 +10,20 @@
     h1 { font-size: 1.2rem; text-align: center; color: #333; margin-bottom: 20px; }
     
     label { display: block; font-weight: bold; margin-bottom: 8px; }
+    
+    /* 修正箇所：iOS等でのはみ出しを防ぐためのスタイル追加 */
     input[type="date"] {
-      width: 100%; font-size: 1.2rem; padding: 12px; border: 2px solid #ccc;
-      border-radius: 8px; box-sizing: border-box; margin-bottom: 24px;
+      width: 100%;
+      max-width: 100%; /* はみ出し防止 */
+      font-size: 1.2rem;
+      padding: 12px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+      margin-bottom: 24px;
+      appearance: none;
+      -webkit-appearance: none;
+      background-color: #fff;
     }
     
     .btn-group { display: flex; flex-direction: column; gap: 12px; }
@@ -55,7 +66,6 @@
       alert('出荷日を選択してください。');
       return;
     }
-    // 例: tsumikomi.html?date=2026-07-21&dest=野田便 へ遷移
     const url = `tsumikomi.html?date=${encodeURIComponent(selectedDate)}&dest=${encodeURIComponent(destination)}`;
     window.location.href = url;
   }
