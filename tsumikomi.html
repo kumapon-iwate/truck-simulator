@@ -161,7 +161,7 @@
             font-size: 11px; font-weight: bold; color: #0284c7;
         }
         
-        /* ★メモ入力と保存ボタンのレイアウト */
+        /* メモ入力と保存ボタンのレイアウト */
         .instruction-body {
             display: flex; gap: 8px; align-items: center;
         }
@@ -172,7 +172,7 @@
             box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
         }
         .instruction-input:focus { border-color: #0284c7; background: #ffffff; box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15); }
-        .instruction-input:disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; border-color: #e2e8f0; }
+        .instruction-input:disabled { background: #f1f5f9; color: #64748b; cursor: default; border-color: #cbd5e1; }
 
         .btn-save-memo {
             background-color: #0284c7; color: white; border: none;
@@ -262,9 +262,16 @@
             .html-label-memo { font-size: 10px; }
             #mobile-legend-bar { display: flex; }
             
+            /* スマホ版メモ表示用の調整 */
             #instruction-bar { padding: 6px 8px; }
-            .instruction-input { height: 34px; font-size: 11px; }
-            .btn-save-memo { height: 34px; font-size: 11px; padding: 0 10px; }
+            .instruction-input { 
+                height: 48px; 
+                font-size: 11px; 
+                background: #f8fafc;
+                border-color: #e2e8f0;
+                overflow-y: auto;
+            }
+            .btn-save-memo { display: none !important; } /* スマホでは保存ボタンを完全に非表示 */
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -391,7 +398,7 @@
         <ul id="cargo-list" class="cargo-list"></ul>
     </div>
 
-    <!-- 下部指示事項（メモ）バー (保存ボタン付き) -->
+    <!-- 下部指示事項（メモ）バー -->
     <div id="instruction-bar">
         <div id="mobile-legend-bar">
             <div class="legend-item"><span class="legend-dot dot-kinugawa"></span>衣川</div>
@@ -731,6 +738,14 @@
         const saveMemoBtn = document.getElementById('save-memo-btn');
         const saveStatusMsg = document.getElementById('save-status-msg');
 
+        // ★スマホ閲覧時の設定制御
+        if (instructionInput) {
+            if (isMobile) {
+                instructionInput.readOnly = true;
+                instructionInput.placeholder = "メモなし";
+            }
+        }
+
         function escapeHTML(str) {
             return String(str).replace(/[&<>"']/g, function(m) {
                 return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
@@ -799,7 +814,7 @@
                 if (addBtn) addBtn.disabled = true;
                 if (unloadAllBtn) unloadAllBtn.disabled = true;
                 if (truckTypeSelect) truckTypeSelect.disabled = true;
-                if (instructionInput) instructionInput.disabled = true;
+                if (instructionInput) instructionInput.readOnly = true;
                 if (saveMemoBtn) saveMemoBtn.disabled = true;
             } else {
                 if (lockBtn) {
@@ -814,14 +829,14 @@
                 if (addBtn) addBtn.disabled = false;
                 if (unloadAllBtn) unloadAllBtn.disabled = false;
                 if (truckTypeSelect) truckTypeSelect.disabled = false;
-                if (instructionInput) instructionInput.disabled = false;
+                if (instructionInput) instructionInput.readOnly = isMobile; // スマホ表示時はロック解除されていても閲覧専用
                 if (saveMemoBtn) saveMemoBtn.disabled = false;
             }
             updateSummaryAndList();
         }
 
         async function saveToCloud() {
-            if (isRemoteUpdating) return;
+            if (isRemoteUpdating || isMobile) return; // スマホからはクラウド保存を実行させない
 
             const cargoDataList = loadedCargos.map(cargo => ({
                 id: cargo.id,
@@ -896,10 +911,10 @@
             isRemoteUpdating = false;
         });
 
-        // ★メモ保存ボタンのクリックイベント
+        // メモ保存ボタンのクリックイベント (PC版用)
         if (saveMemoBtn) {
             saveMemoBtn.addEventListener('click', async () => {
-                if (isLocked) return;
+                if (isLocked || isMobile) return;
                 saveMemoBtn.disabled = true;
                 saveMemoBtn.textContent = '...保存中';
                 
