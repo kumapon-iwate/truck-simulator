@@ -148,7 +148,7 @@
 
         .help-text { font-size: 11px; color: #666; margin-top: 10px; line-height: 1.4; border-top: 1px dashed #ddd; padding-top: 8px; }
 
-        /* ★やわらかい色合いに変更した下部指示事項（メモ）バー */
+        /* 下部指示事項（メモ）バー */
         #instruction-bar {
             position: fixed; bottom: 0; left: 0; width: 100%;
             background: #fdfbf7; color: #334155; padding: 8px 12px;
@@ -160,14 +160,34 @@
             display: flex; justify-content: space-between; align-items: center;
             font-size: 11px; font-weight: bold; color: #0284c7;
         }
+        
+        /* ★メモ入力と保存ボタンのレイアウト */
+        .instruction-body {
+            display: flex; gap: 8px; align-items: center;
+        }
         .instruction-input {
-            width: 100%; background: #ffffff; color: #1e293b; border: 1px solid #cbd5e1;
+            flex-grow: 1; background: #ffffff; color: #1e293b; border: 1px solid #cbd5e1;
             border-radius: 6px; padding: 6px 10px; font-size: 12px; box-sizing: border-box;
             resize: none; height: 38px; outline: none; transition: all 0.2s;
             box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
         }
         .instruction-input:focus { border-color: #0284c7; background: #ffffff; box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15); }
         .instruction-input:disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; border-color: #e2e8f0; }
+
+        .btn-save-memo {
+            background-color: #0284c7; color: white; border: none;
+            border-radius: 6px; font-weight: bold; font-size: 12px;
+            height: 38px; padding: 0 14px; cursor: pointer; white-space: nowrap;
+            transition: background-color 0.2s, opacity 0.2s; display: flex;
+            align-items: center; justify-content: center; gap: 4px;
+        }
+        .btn-save-memo:hover { background-color: #0369a1; }
+        .btn-save-memo:disabled { background-color: #94a3b8; cursor: not-allowed; opacity: 0.6; }
+
+        .save-status-msg {
+            font-size: 10px; color: #059669; font-weight: bold;
+            display: none; transition: opacity 0.3s;
+        }
 
         #mobile-legend-bar {
             display: none; padding-top: 2px; justify-content: space-around;
@@ -244,6 +264,7 @@
             
             #instruction-bar { padding: 6px 8px; }
             .instruction-input { height: 34px; font-size: 11px; }
+            .btn-save-memo { height: 34px; font-size: 11px; padding: 0 10px; }
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -370,7 +391,7 @@
         <ul id="cargo-list" class="cargo-list"></ul>
     </div>
 
-    <!-- ★色合いをやわらかく調整した下部指示事項（メモ）バー -->
+    <!-- 下部指示事項（メモ）バー (保存ボタン付き) -->
     <div id="instruction-bar">
         <div id="mobile-legend-bar">
             <div class="legend-item"><span class="legend-dot dot-kinugawa"></span>衣川</div>
@@ -380,8 +401,12 @@
         </div>
         <div class="instruction-header">
             <span>📋 全体指示事項・連絡メモ</span>
+            <span id="save-status-msg" class="save-status-msg">✓ 保存しました</span>
         </div>
-        <textarea id="general-instruction" class="instruction-input" placeholder="例: 朝8時着指定。降ろし順注意（奥から前沢→インター）"></textarea>
+        <div class="instruction-body">
+            <textarea id="general-instruction" class="instruction-input" placeholder="例: 朝8時着指定。降ろし順注意（奥から前沢→インター）"></textarea>
+            <button id="save-memo-btn" class="btn-save-memo">💾 保存</button>
+        </div>
     </div>
 
     <svg id="leader-line-svg" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:39;"></svg>
@@ -703,6 +728,8 @@
         const totalWeightEl = document.getElementById('total-weight');
         const cargoCountEl = document.getElementById('cargo-count');
         const instructionInput = document.getElementById('general-instruction');
+        const saveMemoBtn = document.getElementById('save-memo-btn');
+        const saveStatusMsg = document.getElementById('save-status-msg');
 
         function escapeHTML(str) {
             return String(str).replace(/[&<>"']/g, function(m) {
@@ -773,6 +800,7 @@
                 if (unloadAllBtn) unloadAllBtn.disabled = true;
                 if (truckTypeSelect) truckTypeSelect.disabled = true;
                 if (instructionInput) instructionInput.disabled = true;
+                if (saveMemoBtn) saveMemoBtn.disabled = true;
             } else {
                 if (lockBtn) {
                     lockBtn.textContent = "🔒 積載を確定する（ロック）";
@@ -787,6 +815,7 @@
                 if (unloadAllBtn) unloadAllBtn.disabled = false;
                 if (truckTypeSelect) truckTypeSelect.disabled = false;
                 if (instructionInput) instructionInput.disabled = false;
+                if (saveMemoBtn) saveMemoBtn.disabled = false;
             }
             updateSummaryAndList();
         }
@@ -817,8 +846,10 @@
                     isLocked: isLocked,
                     updatedAt: new Date().toISOString()
                 });
+                return true;
             } catch (e) {
                 console.error("Cloud Save Error: ", e);
+                return false;
             }
         }
 
@@ -865,9 +896,27 @@
             isRemoteUpdating = false;
         });
 
-        if (instructionInput) {
-            instructionInput.addEventListener('change', () => saveToCloud());
-            instructionInput.addEventListener('blur', () => saveToCloud());
+        // ★メモ保存ボタンのクリックイベント
+        if (saveMemoBtn) {
+            saveMemoBtn.addEventListener('click', async () => {
+                if (isLocked) return;
+                saveMemoBtn.disabled = true;
+                saveMemoBtn.textContent = '...保存中';
+                
+                const success = await saveToCloud();
+                
+                saveMemoBtn.disabled = false;
+                saveMemoBtn.textContent = '💾 保存';
+
+                if (success && saveStatusMsg) {
+                    saveStatusMsg.style.display = 'inline';
+                    saveStatusMsg.style.opacity = '1';
+                    setTimeout(() => {
+                        saveStatusMsg.style.opacity = '0';
+                        setTimeout(() => { saveStatusMsg.style.display = 'none'; }, 300);
+                    }, 2000);
+                }
+            });
         }
 
         function isInsideTruck(cargo) {
