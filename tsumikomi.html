@@ -240,7 +240,8 @@
             100% { border-color: #ef4444; }
         }
 
-        @media screen and (max-width: 768px) {
+        /* モバイル・タブレット共通スタイル */
+        @media screen and (max-width: 1024px) {
             #ship-header { padding: 5px 10px; height: 40px; }
             .btn-back { font-size: 10px; padding: 4px 8px; }
             .ship-date { font-size: 11px; }
@@ -262,7 +263,7 @@
             .html-label-memo { font-size: 10px; }
             #mobile-legend-bar { display: flex; }
             
-            /* スマホ版メモ表示用の調整 */
+            /* モバイル/タブレット版メモ表示用の調整 */
             #instruction-bar { padding: 6px 8px; }
             .instruction-input { 
                 height: 48px; 
@@ -271,7 +272,7 @@
                 border-color: #e2e8f0;
                 overflow-y: auto;
             }
-            .btn-save-memo { display: none !important; } /* スマホでは保存ボタンを完全に非表示 */
+            .btn-save-memo { display: none !important; } /* モバイル/タブレットでは保存ボタンを非表示 */
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -435,7 +436,11 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth <= 768;
+        // ★スマホ・iPad（iPadOSを含む）・各種タブレット・画面幅1024px以下を閲覧専用とする判定
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || 
+                         (navigator.maxTouchPoints && navigator.maxTouchPoints > 1) || 
+                         window.innerWidth <= 1024;
+
         if (isMobile) {
             const controlPanel = document.getElementById('control-panel');
             if (controlPanel) controlPanel.style.display = 'none';
@@ -738,7 +743,6 @@
         const saveMemoBtn = document.getElementById('save-memo-btn');
         const saveStatusMsg = document.getElementById('save-status-msg');
 
-        // ★スマホ閲覧時の設定制御
         if (instructionInput) {
             if (isMobile) {
                 instructionInput.readOnly = true;
@@ -829,14 +833,14 @@
                 if (addBtn) addBtn.disabled = false;
                 if (unloadAllBtn) unloadAllBtn.disabled = false;
                 if (truckTypeSelect) truckTypeSelect.disabled = false;
-                if (instructionInput) instructionInput.readOnly = isMobile; // スマホ表示時はロック解除されていても閲覧専用
+                if (instructionInput) instructionInput.readOnly = isMobile;
                 if (saveMemoBtn) saveMemoBtn.disabled = false;
             }
             updateSummaryAndList();
         }
 
         async function saveToCloud() {
-            if (isRemoteUpdating || isMobile) return; // スマホからはクラウド保存を実行させない
+            if (isRemoteUpdating || isMobile) return;
 
             const cargoDataList = loadedCargos.map(cargo => ({
                 id: cargo.id,
@@ -911,7 +915,6 @@
             isRemoteUpdating = false;
         });
 
-        // メモ保存ボタンのクリックイベント (PC版用)
         if (saveMemoBtn) {
             saveMemoBtn.addEventListener('click', async () => {
                 if (isLocked || isMobile) return;
