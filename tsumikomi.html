@@ -1275,8 +1275,9 @@
                 const startScreenX = (tempV.x * widthHalf) + widthHalf;
                 const startScreenY = -(tempV.y * heightHalf) + heightHalf + headerHeight();
 
-                const labelScreenX = startScreenX + 35;
-                const labelScreenY = startScreenY - 30;
+                // 右上の角方向へ引き出すようにオフセットを調整
+                const labelScreenX = startScreenX + 45;
+                const labelScreenY = startScreenY - 40;
 
                 cargo.labelEl.style.left = `${labelScreenX}px`;
                 cargo.labelEl.style.top = `${labelScreenY}px`;
