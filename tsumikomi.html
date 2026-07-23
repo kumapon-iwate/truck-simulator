@@ -41,7 +41,7 @@
             position: absolute; top: 55px; left: 10px;
             background: rgba(255, 255, 255, 0.98); padding: 15px;
             border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            z-index: 100; width: 300px; max-height: calc(90vh - 60px); overflow-y: auto;
+            z-index: 100; width: 300px; max-height: calc(85vh - 100px); overflow-y: auto;
         }
         h1 { font-size: 16px; margin: 0 0 10px 0; color: #333; border-bottom: 2px solid #f87171; padding-bottom: 5px; }
         .input-group { margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
@@ -93,7 +93,7 @@
             position: absolute; top: 55px; right: 10px;
             background: rgba(255, 255, 255, 0.98); padding: 12px;
             border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            z-index: 100; width: 300px; max-height: calc(85vh - 60px); display: flex; flex-direction: column;
+            z-index: 100; width: 300px; max-height: calc(85vh - 100px); display: flex; flex-direction: column;
         }
         .summary-box {
             background: #1e293b; color: white; padding: 8px 10px; border-radius: 6px;
@@ -148,14 +148,34 @@
 
         .help-text { font-size: 11px; color: #666; margin-top: 10px; line-height: 1.4; border-top: 1px dashed #ddd; padding-top: 8px; }
 
+        /* ★やわらかい色合いに変更した下部指示事項（メモ）バー */
+        #instruction-bar {
+            position: fixed; bottom: 0; left: 0; width: 100%;
+            background: #fdfbf7; color: #334155; padding: 8px 12px;
+            z-index: 150; box-sizing: border-box; border-top: 2px solid #e2e8f0;
+            display: flex; flex-direction: column; gap: 4px;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.06);
+        }
+        .instruction-header {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 11px; font-weight: bold; color: #0284c7;
+        }
+        .instruction-input {
+            width: 100%; background: #ffffff; color: #1e293b; border: 1px solid #cbd5e1;
+            border-radius: 6px; padding: 6px 10px; font-size: 12px; box-sizing: border-box;
+            resize: none; height: 38px; outline: none; transition: all 0.2s;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
+        }
+        .instruction-input:focus { border-color: #0284c7; background: #ffffff; box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15); }
+        .instruction-input:disabled { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; border-color: #e2e8f0; }
+
         #mobile-legend-bar {
-            display: none; position: absolute; bottom: 0; left: 0; width: 100%;
-            background: rgba(15, 23, 42, 0.95); color: white; padding: 6px 10px;
-            z-index: 150; box-sizing: border-box; justify-content: space-around;
-            align-items: center; border-top: 2px solid #0284c7; font-size: 11px; font-weight: bold;
+            display: none; padding-top: 2px; justify-content: space-around;
+            align-items: center; font-size: 10px; font-weight: bold; color: #475569;
+            border-bottom: 1px dashed #e2e8f0; padding-bottom: 4px; margin-bottom: 2px;
         }
         .legend-item { display: flex; align-items: center; gap: 4px; }
-        .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .legend-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
         .dot-kinugawa { background-color: #f87171; }
         .dot-inter { background-color: #3b82f6; }
         .dot-maesawa { background-color: #f59e0b; }
@@ -174,7 +194,6 @@
             border: 1px solid #f87171; padding: 0px 2px; border-radius: 2px; margin-right: 2px;
         }
 
-        /* ★追加：自前ポップアップモーダルのスタイル */
         #custom-alert-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.5); z-index: 9999; justify-content: center; align-items: center;
@@ -209,19 +228,22 @@
 
             #list-panel {
                 top: 48px; right: 8px; width: calc(100% - 16px); max-width: 340px; 
-                max-height: 245px; background: rgba(255, 255, 255, 0.92);
+                max-height: 210px; background: rgba(255, 255, 255, 0.92);
                 backdrop-filter: blur(4px); padding: 8px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             }
             .summary-box { padding: 6px 8px; margin-bottom: 6px; }
             .summary-title { font-size: 10px; margin: 0; }
             .summary-weight { font-size: 15px; }
-            .cargo-list { max-height: 140px; overflow-y: auto; }
+            .cargo-list { max-height: 110px; overflow-y: auto; }
             .cargo-item { padding: 4px 6px; }
             .cargo-item-name { font-size: 11px; }
             .cargo-item-detail { font-size: 10px; }
             .html-label { font-size: 10px; }
             .html-label-memo { font-size: 10px; }
             #mobile-legend-bar { display: flex; }
+            
+            #instruction-bar { padding: 6px 8px; }
+            .instruction-input { height: 34px; font-size: 11px; }
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -229,7 +251,6 @@
 </head>
 <body>
 
-    <!-- ★追加：カスタムアラートモーダル -->
     <div id="custom-alert-modal">
         <div class="custom-alert-content">
             <div id="custom-alert-text" class="custom-alert-text"></div>
@@ -349,11 +370,18 @@
         <ul id="cargo-list" class="cargo-list"></ul>
     </div>
 
-    <div id="mobile-legend-bar">
-        <div class="legend-item"><span class="legend-dot dot-kinugawa"></span>衣川 薄赤</div>
-        <div class="legend-item"><span class="legend-dot dot-inter"></span>インター 青</div>
-        <div class="legend-item"><span class="legend-dot dot-maesawa"></span>前沢 オレンジ</div>
-        <div class="legend-item"><span class="legend-dot dot-jnt"></span>JNT 緑</div>
+    <!-- ★色合いをやわらかく調整した下部指示事項（メモ）バー -->
+    <div id="instruction-bar">
+        <div id="mobile-legend-bar">
+            <div class="legend-item"><span class="legend-dot dot-kinugawa"></span>衣川</div>
+            <div class="legend-item"><span class="legend-dot dot-inter"></span>インター</div>
+            <div class="legend-item"><span class="legend-dot dot-maesawa"></span>前沢</div>
+            <div class="legend-item"><span class="legend-dot dot-jnt"></span>JNT</div>
+        </div>
+        <div class="instruction-header">
+            <span>📋 全体指示事項・連絡メモ</span>
+        </div>
+        <textarea id="general-instruction" class="instruction-input" placeholder="例: 朝8時着指定。降ろし順注意（奥から前沢→インター）"></textarea>
     </div>
 
     <svg id="leader-line-svg" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:39;"></svg>
@@ -435,9 +463,8 @@
         controls.enableDamping = true; 
         controls.target.set(0, 1.15, 0); 
 
-        // ★追加：独自アラートモーダル表示関数
         function showCustomAlert(msg) {
-            controls.enabled = false; // OrbitControls停止
+            controls.enabled = false;
             const modal = document.getElementById('custom-alert-modal');
             const textEl = document.getElementById('custom-alert-text');
             const btn = document.getElementById('custom-alert-btn');
@@ -449,7 +476,6 @@
                 e.stopPropagation();
                 modal.style.display = 'none';
                 btn.removeEventListener('click', closeAlert);
-                // 画面クリックによる回転を防ぐためわずかに遅延して再有効化
                 setTimeout(() => {
                     controls.enabled = true;
                 }, 50);
@@ -676,6 +702,7 @@
         const cargoListEl = document.getElementById('cargo-list');
         const totalWeightEl = document.getElementById('total-weight');
         const cargoCountEl = document.getElementById('cargo-count');
+        const instructionInput = document.getElementById('general-instruction');
 
         function escapeHTML(str) {
             return String(str).replace(/[&<>"']/g, function(m) {
@@ -745,6 +772,7 @@
                 if (addBtn) addBtn.disabled = true;
                 if (unloadAllBtn) unloadAllBtn.disabled = true;
                 if (truckTypeSelect) truckTypeSelect.disabled = true;
+                if (instructionInput) instructionInput.disabled = true;
             } else {
                 if (lockBtn) {
                     lockBtn.textContent = "🔒 積載を確定する（ロック）";
@@ -758,12 +786,13 @@
                 if (addBtn) addBtn.disabled = false;
                 if (unloadAllBtn) unloadAllBtn.disabled = false;
                 if (truckTypeSelect) truckTypeSelect.disabled = false;
+                if (instructionInput) instructionInput.disabled = false;
             }
             updateSummaryAndList();
         }
 
         async function saveToCloud() {
-            if (isRemoteUpdating || isMobile) return;
+            if (isRemoteUpdating) return;
 
             const cargoDataList = loadedCargos.map(cargo => ({
                 id: cargo.id,
@@ -784,6 +813,7 @@
                 await setDoc(cargoDocRef, {
                     truckType: currentTruckType,
                     cargos: cargoDataList,
+                    instruction: instructionInput ? instructionInput.value : "",
                     isLocked: isLocked,
                     updatedAt: new Date().toISOString()
                 });
@@ -800,6 +830,12 @@
 
             if (data.isLocked !== undefined) {
                 isLocked = data.isLocked;
+            }
+
+            if (data.instruction !== undefined && instructionInput) {
+                if (document.activeElement !== instructionInput) {
+                    instructionInput.value = data.instruction;
+                }
             }
 
             if (data.truckType && data.truckType !== currentTruckType) {
@@ -828,6 +864,11 @@
             updateLockUI();
             isRemoteUpdating = false;
         });
+
+        if (instructionInput) {
+            instructionInput.addEventListener('change', () => saveToCloud());
+            instructionInput.addEventListener('blur', () => saveToCloud());
+        }
 
         function isInsideTruck(cargo) {
             const pos = cargo.mesh.position;
@@ -1128,7 +1169,7 @@
 
         function onPointerDown(event) {
             if (isMobile || isLocked) return; 
-            if (event.target.closest('#control-panel') || event.target.closest('#list-panel') || event.target.closest('#ship-header') || event.target.closest('#custom-alert-modal')) return;
+            if (event.target.closest('#control-panel') || event.target.closest('#list-panel') || event.target.closest('#ship-header') || event.target.closest('#custom-alert-modal') || event.target.closest('#instruction-bar')) return;
 
             const clickY = event.clientY - headerHeight();
             const canvasHeight = window.innerHeight - headerHeight();
@@ -1143,7 +1184,6 @@
                 const hitObj = intersects[0].object;
 
                 if (hasCargoAbove(hitObj)) {
-                    // 自前ポッアップを表示（標準alertを使わない）
                     showCustomAlert("⚠️ 上に荷物が載っているため動かせません。上の荷物を先に移動してください。");
                     return;
                 }
@@ -1203,7 +1243,7 @@
 
         window.addEventListener('keydown', (e) => {
             if (isMobile || isLocked || !selectedObject) return;
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
 
             const step = 0.1;
             if (e.key === 'w' || e.key === 'W') {
