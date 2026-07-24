@@ -233,12 +233,11 @@
         .dot-maesawa { background-color: #f59e0b; }
         .dot-jnt { background-color: #10b981; }
 
-        /* ▼ 文字の背景を透明に変更したラベルスタイル ▼ */
         .html-label {
             position: absolute; z-index: 50; color: #0f172a; background: transparent;
             border: none; padding: 0px; font-size: 9.5px; font-weight: bold; pointer-events: none;
-            white-space: nowrap; text-align: left; line-height: 1.2; box-shadow: none;
-            transform: translate(5px, -50%); display: none;
+            white-space: nowrap; text-align: center; line-height: 1.2; box-shadow: none;
+            transform: translate(-50%, -50%); display: none;
         }
         .html-label-memo { color: #0f172a; font-size: 9.5px; display: inline; font-weight: bold; text-shadow: 0px 0px 3px rgba(255,255,255,0.9), 0px 0px 3px rgba(255,255,255,0.9); }
         .html-label-nostack {
@@ -457,7 +456,6 @@
         </div>
     </div>
 
-    <!-- 引き出線用のSVGは非表示または空に -->
     <svg id="leader-line-svg" style="display:none; position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:39;"></svg>
     <div id="label-overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:40;"></div>
 
@@ -594,6 +592,10 @@
             const wireMat = new THREE.MeshBasicMaterial({ color: 0x0284c7, wireframe: true, transparent: true, opacity: 0.4 });
             const floorMat = new THREE.MeshStandardMaterial({ color: 0x475569, side: THREE.DoubleSide });
 
+            const tireRadius = 0.45;
+            const tireWidth = 0.3;
+            const bedBottomY = tireRadius * 2;
+
             if (currentTruck.isStep) {
                 const totalL = currentTruck.l;
                 const frontL = currentTruck.frontL;
@@ -608,41 +610,41 @@
 
                 const frontGeo = new THREE.BoxGeometry(w, frontH, frontL);
                 const frontMesh = new THREE.Mesh(frontGeo, wireMat);
-                frontMesh.position.set(0, stepDiff + frontH / 2, frontZ);
+                frontMesh.position.set(0, bedBottomY + stepDiff + frontH / 2, frontZ);
                 truckGroup.add(frontMesh);
 
                 const rearGeo = new THREE.BoxGeometry(w, rearH, rearL);
                 const rearMesh = new THREE.Mesh(rearGeo, wireMat);
-                rearMesh.position.set(0, rearH / 2, rearZ);
+                rearMesh.position.set(0, bedBottomY + rearH / 2, rearZ);
                 truckGroup.add(rearMesh);
 
                 const frontFloorGeo = new THREE.PlaneGeometry(w, frontL);
                 const frontFloorMesh = new THREE.Mesh(frontFloorGeo, floorMat);
                 frontFloorMesh.rotation.x = -Math.PI / 2;
-                frontFloorMesh.position.set(0, stepDiff + 0.005, frontZ);
+                frontFloorMesh.position.set(0, bedBottomY + stepDiff + 0.005, frontZ);
                 truckGroup.add(frontFloorMesh);
 
                 const rearFloorGeo = new THREE.PlaneGeometry(w, rearL);
                 const rearFloorMesh = new THREE.Mesh(rearFloorGeo, floorMat);
                 rearFloorMesh.rotation.x = -Math.PI / 2;
-                rearFloorMesh.position.set(0, 0.005, rearZ);
+                rearFloorMesh.position.set(0, bedBottomY + 0.005, rearZ);
                 truckGroup.add(rearFloorMesh);
 
                 const stepWallGeo = new THREE.PlaneGeometry(w, stepDiff);
                 const stepWallMesh = new THREE.Mesh(stepWallGeo, floorMat);
-                stepWallMesh.position.set(0, stepDiff / 2, -totalL / 2 + frontL);
+                stepWallMesh.position.set(0, bedBottomY + stepDiff / 2, -totalL / 2 + frontL);
                 truckGroup.add(stepWallMesh);
 
             } else {
                 const truckGeo = new THREE.BoxGeometry(currentTruck.w, currentTruck.h, currentTruck.l);
                 const truckMesh = new THREE.Mesh(truckGeo, wireMat);
-                truckMesh.position.set(0, currentTruck.h / 2, 0);
+                truckMesh.position.set(0, bedBottomY + currentTruck.h / 2, 0);
                 truckGroup.add(truckMesh);
 
                 const floorGeo = new THREE.PlaneGeometry(currentTruck.w, currentTruck.l);
                 const floorMesh = new THREE.Mesh(floorGeo, floorMat);
                 floorMesh.rotation.x = -Math.PI / 2;
-                floorMesh.position.set(0, 0.005, 0);
+                floorMesh.position.set(0, bedBottomY + 0.005, 0);
                 truckGroup.add(floorMesh);
             }
 
@@ -650,36 +652,43 @@
             const maxH = currentTruck.isStep ? currentTruck.rearH : currentTruck.h;
             const cabHeight = Math.max(maxH, 2.2);
             const cabLength = 1.8;
+            
             const cabZ = -currentTruck.l / 2 - cabLength / 2;
+            const cabBottomY = bedBottomY - (tireRadius * 0.5); 
             const halfHeight = cabHeight / 2;
 
             const cabBottomGeo = new THREE.BoxGeometry(cabWidth, halfHeight, cabLength);
             const cabBottomMat = new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.3 }); 
             const cabBottomMesh = new THREE.Mesh(cabBottomGeo, cabBottomMat);
-            cabBottomMesh.position.set(0, halfHeight / 2, cabZ);
+            cabBottomMesh.position.set(0, cabBottomY + halfHeight / 2, cabZ);
+            cabBottomMesh.renderOrder = 1;
             truckGroup.add(cabBottomMesh);
 
             const stripeMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 });
             
             const stripeLeftGeo = new THREE.BoxGeometry(0.02, 0.06, cabLength);
             const stripeLeftMesh = new THREE.Mesh(stripeLeftGeo, stripeMat);
-            stripeLeftMesh.position.set(-cabWidth / 2 - 0.01, halfHeight, cabZ);
+            stripeLeftMesh.position.set(-cabWidth / 2 - 0.01, cabBottomY + halfHeight, cabZ);
+            stripeLeftMesh.renderOrder = 1;
             truckGroup.add(stripeLeftMesh);
 
             const stripeRightGeo = new THREE.BoxGeometry(0.02, 0.06, cabLength);
             const stripeRightMesh = new THREE.Mesh(stripeRightGeo, stripeMat);
-            stripeRightMesh.position.set(cabWidth / 2 + 0.01, halfHeight, cabZ);
+            stripeRightMesh.position.set(cabWidth / 2 + 0.01, cabBottomY + halfHeight, cabZ);
+            stripeRightMesh.renderOrder = 1;
             truckGroup.add(stripeRightMesh);
 
             const stripeBackGeo = new THREE.BoxGeometry(cabWidth, 0.06, 0.02);
             const stripeBackMesh = new THREE.Mesh(stripeBackGeo, stripeMat);
-            stripeBackMesh.position.set(0, halfHeight, cabZ + cabLength / 2 + 0.01);
+            stripeBackMesh.position.set(0, cabBottomY + halfHeight, cabZ + cabLength / 2 + 0.01);
+            stripeBackMesh.renderOrder = 1;
             truckGroup.add(stripeBackMesh);
 
             const cabTopGeo = new THREE.BoxGeometry(cabWidth, halfHeight, cabLength);
             const cabTopMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.3 }); 
             const cabTopMesh = new THREE.Mesh(cabTopGeo, cabTopMat);
-            cabTopMesh.position.set(0, halfHeight + halfHeight / 2, cabZ);
+            cabTopMesh.position.set(0, cabBottomY + halfHeight + halfHeight / 2, cabZ);
+            cabTopMesh.renderOrder = 1;
             truckGroup.add(cabTopMesh);
 
             const glassMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide });
@@ -687,7 +696,8 @@
             const glassWidth = cabWidth * 0.85;
             const glassHeight = halfHeight * 0.6;
             const frontGlass = new THREE.Mesh(new THREE.PlaneGeometry(glassWidth, glassHeight), glassMat);
-            frontGlass.position.set(0, halfHeight + halfHeight / 2, cabZ - cabLength / 2 - 0.01);
+            frontGlass.position.set(0, cabBottomY + halfHeight + halfHeight / 2, cabZ - cabLength / 2 - 0.01);
+            frontGlass.renderOrder = 1;
             truckGroup.add(frontGlass);
 
             const sideGlassLength = cabLength * 0.55;
@@ -695,37 +705,88 @@
             
             const leftSideGlass = sideGlass.clone();
             leftSideGlass.rotation.y = Math.PI / 2;
-            leftSideGlass.position.set(-cabWidth / 2 - 0.01, halfHeight + halfHeight / 2, cabZ);
+            leftSideGlass.position.set(-cabWidth / 2 - 0.01, cabBottomY + halfHeight + halfHeight / 2, cabZ);
+            leftSideGlass.renderOrder = 1;
             truckGroup.add(leftSideGlass);
 
             const rightSideGlass = sideGlass.clone();
             rightSideGlass.rotation.y = -Math.PI / 2;
-            rightSideGlass.position.set(cabWidth / 2 + 0.01, halfHeight + halfHeight / 2, cabZ);
+            rightSideGlass.position.set(cabWidth / 2 + 0.01, cabBottomY + halfHeight + halfHeight / 2, cabZ);
+            rightSideGlass.renderOrder = 1;
             truckGroup.add(rightSideGlass);
 
             const lightGeo = new THREE.BoxGeometry(0.4, 0.25, 0.1);
             const lightMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
             const leftLight = new THREE.Mesh(lightGeo, lightMat);
-            leftLight.position.set(-cabWidth * 0.35, cabHeight * 0.2, cabZ - cabLength / 2 - 0.02);
+            leftLight.position.set(-cabWidth * 0.35, cabBottomY + cabHeight * 0.2, cabZ - cabLength / 2 - 0.02);
+            leftLight.renderOrder = 1;
             const rightLight = new THREE.Mesh(lightGeo, lightMat);
-            rightLight.position.set(cabWidth * 0.35, cabHeight * 0.2, cabZ - cabLength / 2 - 0.02);
+            rightLight.position.set(cabWidth * 0.35, cabBottomY + cabHeight * 0.2, cabZ - cabLength / 2 - 0.02);
+            rightLight.renderOrder = 1;
             truckGroup.add(leftLight);
             truckGroup.add(rightLight);
 
             const rearGeo = new THREE.BoxGeometry(currentTruck.w, 0.4, 0.1);
             const rearMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db });
             const rearMesh = new THREE.Mesh(rearGeo, rearMat);
-            rearMesh.position.set(0, 0.2, currentTruck.l / 2 + 0.05);
+            rearMesh.position.set(0, bedBottomY + 0.2, currentTruck.l / 2 + 0.05);
             truckGroup.add(rearMesh);
 
             const tailLightGeo = new THREE.BoxGeometry(0.3, 0.15, 0.05);
             const tailLightMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
             const leftTail = new THREE.Mesh(tailLightGeo, tailLightMat);
-            leftTail.position.set(-currentTruck.w * 0.4, 0.15, currentTruck.l / 2 + 0.11);
+            leftTail.position.set(-currentTruck.w * 0.4, bedBottomY + 0.15, currentTruck.l / 2 + 0.11);
             const rightTail = new THREE.Mesh(tailLightGeo, tailLightMat);
-            rightTail.position.set(currentTruck.w * 0.4, 0.15, currentTruck.l / 2 + 0.11);
+            rightTail.position.set(currentTruck.w * 0.4, bedBottomY + 0.15, currentTruck.l / 2 + 0.11);
             truckGroup.add(leftTail);
             truckGroup.add(rightTail);
+
+            const tireGeo = new THREE.CylinderGeometry(tireRadius, tireRadius, tireWidth, 24);
+            tireGeo.rotateZ(Math.PI / 2);
+
+            const tireMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.5, roughness: 0.3 });
+
+            const wheelGeo = new THREE.CylinderGeometry(tireRadius * 0.5, tireRadius * 0.5, tireWidth + 0.02, 16);
+            wheelGeo.rotateZ(Math.PI / 2);
+
+            function createWheelAssembly() {
+                const group = new THREE.Group();
+                const tireMesh = new THREE.Mesh(tireGeo, tireMat);
+                const wheelMesh = new THREE.Mesh(wheelGeo, wheelMat);
+                
+                tireMesh.renderOrder = 10;
+                wheelMesh.renderOrder = 10;
+
+                group.add(tireMesh);
+                group.add(wheelMesh);
+                return group;
+            }
+
+            const frontWheelZ = cabZ;
+            const rearWheelZ1 = currentTruck.l * 0.25;
+            const rearWheelZ2 = currentTruck.l * 0.38;
+
+            const trackWidth = currentTruck.w - tireWidth + 0.05;
+
+            function addWheelPair(zPos) {
+                const leftWheel = createWheelAssembly();
+                leftWheel.position.set(-trackWidth / 2, tireRadius, zPos);
+                truckGroup.add(leftWheel);
+
+                const rightWheel = createWheelAssembly();
+                rightWheel.position.set(trackWidth / 2, tireRadius, zPos);
+                truckGroup.add(rightWheel);
+            }
+
+            addWheelPair(frontWheelZ);
+
+            if (currentTruck.l >= 9.0) {
+                addWheelPair(rearWheelZ1);
+                addWheelPair(rearWheelZ2);
+            } else {
+                addWheelPair(currentTruck.l * 0.3);
+            }
 
             updateStorageArea();
             
@@ -791,7 +852,6 @@
         let isDragging = false;
 
         const labelOverlay = document.getElementById('label-overlay');
-        const leaderLineSvg = document.getElementById('leader-line-svg');
         const cargoListEl = document.getElementById('cargo-list');
         const totalWeightEl = document.getElementById('total-weight');
         const cargoCountEl = document.getElementById('cargo-count');
@@ -1147,8 +1207,11 @@
             updateSummaryAndList();
         }
 
+        const tireRadius = 0.45;
+        const bedBottomY = tireRadius * 2;
+
         function calculateBaseYAt(posX, posZ) {
-            if (!currentTruck.isStep) return 0;
+            if (!currentTruck.isStep) return bedBottomY;
 
             const totalL = currentTruck.l;
             const frontL = currentTruck.frontL;
@@ -1156,9 +1219,9 @@
 
             const inTruckX = Math.abs(posX) <= (currentTruck.w / 2 + 0.1);
             if (inTruckX && posZ < stepZ) {
-                return currentTruck.stepDiff; 
+                return bedBottomY + currentTruck.stepDiff; 
             }
-            return 0; 
+            return bedBottomY; 
         }
 
         function calculateSurfaceY(targetMesh) {
@@ -1414,7 +1477,7 @@
             const location = selectedOption.getAttribute('data-loc') || '衣川';
 
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, w, h, l, -(currentTruck.w / 2 + 4), h / 2, 0, colorHex, memo, weight, noStack, location);
+            const cargoObj = createCargoMesh(newId, w, h, l, -(currentTruck.w / 2 + 4), bedBottomY + h / 2, 0, colorHex, memo, weight, noStack, location);
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
@@ -1423,7 +1486,7 @@
             if (isLocked) return;
             let offsetZ = -currentTruck.l / 2 + 1;
             loadedCargos.forEach(cargo => {
-                cargo.mesh.position.set(-(currentTruck.w / 2 + 4), cargo.h / 2, offsetZ);
+                cargo.mesh.position.set(-(currentTruck.w / 2 + 4), bedBottomY + cargo.h / 2, offsetZ);
                 offsetZ += cargo.l + 0.2;
             });
             updateSummaryAndList();
@@ -1466,7 +1529,7 @@
         document.getElementById('preset-las500-1000').addEventListener('click', () => {
             if (isLocked) return;
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 1.2, 0.4, 2.0, -(currentTruck.w / 2 + 4), 0.2, 0, '0xf87171', 'ラス(500)1000㎡', 1000, false, '衣川');
+            const cargoObj = createCargoMesh(newId, 1.2, 0.4, 2.0, -(currentTruck.w / 2 + 4), bedBottomY + 0.2, 0, '0xf87171', 'ラス(500)1000㎡', 1000, false, '衣川');
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
@@ -1474,7 +1537,7 @@
         document.getElementById('preset-las500-2000').addEventListener('click', () => {
             if (isLocked) return;
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 2.4, 0.4, 2.0, -(currentTruck.w / 2 + 4), 0.2, 0, '0xf87171', 'ラス(500)2000㎡', 2000, false, '衣川');
+            const cargoObj = createCargoMesh(newId, 2.4, 0.4, 2.0, -(currentTruck.w / 2 + 4), bedBottomY + 0.2, 0, '0xf87171', 'ラス(500)2000㎡', 2000, false, '衣川');
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
@@ -1482,7 +1545,7 @@
         document.getElementById('preset-las500-4000').addEventListener('click', () => {
             if (isLocked) return;
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 2.4, 0.4, 4.0, -(currentTruck.w / 2 + 4), 0.2, 0, '0xf87171', 'ラス(500)4000㎡', 4000, false, '衣川');
+            const cargoObj = createCargoMesh(newId, 2.4, 0.4, 4.0, -(currentTruck.w / 2 + 4), bedBottomY + 0.2, 0, '0xf87171', 'ラス(500)4000㎡', 4000, false, '衣川');
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
@@ -1490,7 +1553,7 @@
         document.getElementById('preset-las1000-1000').addEventListener('click', () => {
             if (isLocked) return;
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 0.7, 0.6, 2.0, -(currentTruck.w / 2 + 4), 0.3, 0, '0xf87171', 'ラス(1000)1000㎡', 1000, false, '衣川');
+            const cargoObj = createCargoMesh(newId, 0.7, 0.6, 2.0, -(currentTruck.w / 2 + 4), bedBottomY + 0.3, 0, '0xf87171', 'ラス(1000)1000㎡', 1000, false, '衣川');
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
