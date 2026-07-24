@@ -300,12 +300,12 @@
         <div class="input-group" style="background: #fff5f5; padding: 6px; border-radius: 4px; border: 1px solid #fed7d7; margin-bottom: 12px;">
             <label style="font-weight: bold; color: #c53030;">🚚 トラック種別:</label>
             <select id="truck-type" style="border: 1px solid #feb2b2; font-weight: bold;">
-                <option value="4t_flat">4t 平 (6.2m / 3,100kg)</option>
-                <option value="4t_wing">4t ウィング (6.2m / 2,800kg)</option>
-                <option value="6t_unic">6t ユニック (5.5m / 5,000kg)</option>
-                <option value="10t_flat">10t 平 (9.6m / 9,500kg)</option>
-                <option value="15t_wing" selected>15t ウィング (9.6m / 12,500kg)</option>
-                <option value="20t_trailer">20t ウィングトレーラー (12.6m / 20,000kg)</option>
+                <option value="4t_flat">4t 平 (幅2.15m × 長6.2m / 3,100kg)</option>
+                <option value="4t_wing">4t ウィング (幅2.15m × 長6.2m / 2,800kg)</option>
+                <option value="6t_unic">6t ユニック (幅2.2m × 長5.5m / 5,000kg)</option>
+                <option value="10t_flat">10t 平 (幅2.4m × 長9.6m / 9,500kg)</option>
+                <option value="15t_wing" selected>15t ウィング (幅2.4m × 長9.6m / 12,500kg)</option>
+                <option value="20t_trailer">20t ウィングトレーラー (幅2.4m × 長12.0m / 20,000kg)</option>
             </select>
         </div>
 
@@ -459,7 +459,7 @@
             document.getElementById('display-dest').textContent = destVal;
         }
 
-        // トラックサイズ設定
+        // トラックサイズ設定 (前部3.0m、後部9.0m、全長12.0mに変更)
         const TRUCK_SIZES = {
             "4t_flat":    { name: "4t 平", w: 2.15, h: 0.8, l: 6.2, maxWeight: 3100, isStep: false },
             "4t_wing":    { name: "4t ウィング", w: 2.15, h: 2.4, l: 6.2, maxWeight: 2800, isStep: false },
@@ -468,13 +468,13 @@
             "15t_wing":   { name: "15t ウィング", w: 2.4, h: 2.5, l: 9.6, maxWeight: 12500, isStep: false },
             "20t_trailer":{ 
                 name: "20t ウィングトレーラー", 
-                w: 2.405, 
-                l: 12.6, 
+                w: 2.4, 
+                l: 12.0, 
                 maxWeight: 20000,
                 isStep: true,
-                frontL: 3.2,
+                frontL: 3.0,
                 frontH: 2.235,
-                rearL: 9.4,
+                rearL: 9.0,
                 rearH: 2.535,
                 stepDiff: 0.3 
             }
@@ -756,7 +756,6 @@
             });
         }
 
-        // 数値表示用フォーマット (末尾の不要な0を消し、最大少数第2位まで表示)
         function formatDim(val) {
             return Number(val.toFixed(2)).toString();
         }
@@ -1443,11 +1442,10 @@
             saveToCloud();
         });
 
-        // ラス(1000)1000㎡ (幅: 0.75m, 高さ: 0.6m, 長さ: 2.0m)
         document.getElementById('preset-las1000-1000').addEventListener('click', () => {
             if (isLocked) return;
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 0.75, 0.6, 2.0, -(currentTruck.w / 2 + 4), 0.3, 0, '0xf87171', 'ラス(1000)1000㎡', 1000, false, '衣川');
+            const cargoObj = createCargoMesh(newId, 0.7, 0.6, 2.0, -(currentTruck.w / 2 + 4), 0.3, 0, '0xf87171', 'ラス(1000)1000㎡', 1000, false, '衣川');
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
