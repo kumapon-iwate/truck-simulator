@@ -199,18 +199,20 @@
         .dot-maesawa { background-color: #f59e0b; }
         .dot-jnt { background-color: #10b981; }
 
+        /* ▼ ラベル表示を小さく調整 ▼ */
         .html-label {
             position: absolute; z-index: 50; color: #0f172a; background: transparent;
-            border: none; padding: 0px 4px; font-size: 11px; font-weight: bold; pointer-events: none;
+            border: none; padding: 0px 3px; font-size: 9.5px; font-weight: bold; pointer-events: none;
             white-space: nowrap; text-align: left; line-height: 1.2; box-shadow: none;
             transform: translate(0, -50%); display: none;
             text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
         }
-        .html-label-memo { color: #0f172a; font-size: 11px; display: inline; font-weight: bold; }
+        .html-label-memo { color: #0f172a; font-size: 9.5px; display: inline; font-weight: bold; }
         .html-label-nostack {
-            color: #dc2626; font-size: 9px; font-weight: bold; background: #fee2e2;
+            color: #dc2626; font-size: 8px; font-weight: bold; background: #fee2e2;
             border: 1px solid #f87171; padding: 0px 2px; border-radius: 2px; margin-right: 2px;
         }
+        /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
 
         #custom-alert-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -256,8 +258,8 @@
             .cargo-item { padding: 4px 6px; }
             .cargo-item-name { font-size: 11px; }
             .cargo-item-detail { font-size: 10px; }
-            .html-label { font-size: 10px; }
-            .html-label-memo { font-size: 10px; }
+            .html-label { font-size: 9px; }
+            .html-label-memo { font-size: 9px; }
             #mobile-legend-bar { display: flex; }
             
             #instruction-bar { padding: 6px 8px; }
@@ -459,7 +461,6 @@
             document.getElementById('display-dest').textContent = destVal;
         }
 
-        // トラックサイズ設定 (前部3.0m、後部9.0m、全長12.0mに変更)
         const TRUCK_SIZES = {
             "4t_flat":    { name: "4t 平", w: 2.15, h: 0.8, l: 6.2, maxWeight: 3100, isStep: false },
             "4t_wing":    { name: "4t ウィング", w: 2.15, h: 2.4, l: 6.2, maxWeight: 2800, isStep: false },
@@ -1417,7 +1418,6 @@
             updateLabelsVisibility();
         });
 
-        // --- クイック追加ボタンのイベント処理 ---
         document.getElementById('preset-las500-1000').addEventListener('click', () => {
             if (isLocked) return;
             const newId = 'cargo_' + Date.now();
