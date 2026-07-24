@@ -94,7 +94,42 @@
             background: rgba(255, 255, 255, 0.98); padding: 12px;
             border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
             z-index: 100; width: 300px; max-height: calc(85vh - 100px); display: flex; flex-direction: column;
+            transition: max-height 0.3s ease, padding 0.3s ease;
         }
+        /* ▼ リストパネル折りたたみ時のスタイル ▼ */
+        #list-panel.collapsed {
+            max-height: 42px !important;
+            padding: 8px 12px !important;
+            overflow: hidden;
+        }
+        #list-panel.collapsed #collapsible-content {
+            display: none;
+        }
+        #list-panel.collapsed .summary-box {
+            margin-bottom: 0;
+            padding: 4px 8px;
+        }
+        #list-panel.collapsed .summary-row {
+            margin-bottom: 0;
+        }
+        #list-panel.collapsed .max-weight-info,
+        #list-panel.collapsed .summary-title {
+            display: none;
+        }
+        #list-panel.collapsed .summary-weight {
+            font-size: 13px;
+        }
+
+        .list-toggle-header {
+            display: flex; justify-content: space-between; align-items: center;
+            cursor: pointer; user-select: none;
+        }
+        .btn-list-toggle {
+            background: #334155; color: white; border: none; border-radius: 4px;
+            font-size: 10px; padding: 2px 6px; font-weight: bold; cursor: pointer;
+        }
+        .btn-list-toggle:hover { background: #1e293b; }
+
         .summary-box {
             background: #1e293b; color: white; padding: 8px 10px; border-radius: 6px;
             margin-bottom: 8px; display: flex; flex-direction: column; gap: 4px;
@@ -199,7 +234,6 @@
         .dot-maesawa { background-color: #f59e0b; }
         .dot-jnt { background-color: #10b981; }
 
-        /* ▼ ラベル表示を小さく調整 ▼ */
         .html-label {
             position: absolute; z-index: 50; color: #0f172a; background: transparent;
             border: none; padding: 0px 3px; font-size: 9.5px; font-weight: bold; pointer-events: none;
@@ -212,7 +246,6 @@
             color: #dc2626; font-size: 8px; font-weight: bold; background: #fee2e2;
             border: 1px solid #f87171; padding: 0px 2px; border-radius: 2px; margin-right: 2px;
         }
-        /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
 
         #custom-alert-modal {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -385,21 +418,30 @@
         </div>
     </div>
 
+    <!-- ▼ リストパネル (折りたたみ機能付き) ▼ -->
     <div id="list-panel">
-        <div id="summary-box" class="summary-box">
-            <div class="summary-row">
-                <div class="summary-title">積載総重量</div>
-                <div id="mobile-truck-display" class="mobile-truck-badge">15t ウィング</div>
-            </div>
-            <div id="total-weight" class="summary-weight">0 kg (0.00 t)</div>
-            <div class="max-weight-info">
-                <span>最大積載量: <strong id="max-weight-text">12,500</strong> kg</span>
-                <span id="overweight-text" class="overweight-msg">⚠️ +0 kg</span>
-            </div>
+        <div class="list-toggle-header" id="list-toggle-header">
+            <div style="font-size: 11px; font-weight: bold; color: #475569;">📋 積載リスト・総重量</div>
+            <button id="list-toggle-btn" class="btn-list-toggle">▲ 閉じる</button>
         </div>
-        <div style="font-size: 11px; font-weight: bold; color: #475569; margin-bottom: 4px;">📦 全荷物 (<span id="cargo-count">0</span>個)</div>
-        <ul id="cargo-list" class="cargo-list"></ul>
+        
+        <div id="collapsible-content" style="margin-top: 6px; display: flex; flex-direction: column; flex-grow: 1; overflow: hidden;">
+            <div id="summary-box" class="summary-box">
+                <div class="summary-row">
+                    <div class="summary-title">積載総重量</div>
+                    <div id="mobile-truck-display" class="mobile-truck-badge">15t ウィング</div>
+                </div>
+                <div id="total-weight" class="summary-weight">0 kg (0.00 t)</div>
+                <div class="max-weight-info">
+                    <span>最大積載量: <strong id="max-weight-text">12,500</strong> kg</span>
+                    <span id="overweight-text" class="overweight-msg">⚠️ +0 kg</span>
+                </div>
+            </div>
+            <div style="font-size: 11px; font-weight: bold; color: #475569; margin-bottom: 4px;">📦 全荷物 (<span id="cargo-count">0</span>個)</div>
+            <ul id="cargo-list" class="cargo-list"></ul>
+        </div>
     </div>
+    <!-- ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ -->
 
     <div id="instruction-bar">
         <div id="mobile-legend-bar">
@@ -445,6 +487,25 @@
             const controlPanel = document.getElementById('control-panel');
             if (controlPanel) controlPanel.style.display = 'none';
         }
+
+        // ▼ リストパネルの折りたたみトグル機能 ▼
+        const listPanel = document.getElementById('list-panel');
+        const listToggleHeader = document.getElementById('list-toggle-header');
+        const listToggleBtn = document.getElementById('list-toggle-btn');
+
+        function toggleListPanel(e) {
+            if (e) e.stopPropagation();
+            listPanel.classList.toggle('collapsed');
+            if (listPanel.classList.contains('collapsed')) {
+                listToggleBtn.textContent = '▼ 開く';
+            } else {
+                listToggleBtn.textContent = '▲ 閉じる';
+            }
+        }
+        listToggleHeader.addEventListener('click', toggleListPanel);
+
+        // 初期状態でスマホの場合は邪魔にならないように畳んでおくことも可能です（必要に応じてコメントアウト解除）
+        // if (isMobile) { toggleListPanel(); }
 
         const params = new URLSearchParams(window.location.search);
         const dateVal = params.get('date') || 'default-date';
