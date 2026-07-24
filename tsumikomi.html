@@ -148,7 +148,6 @@
 
         .help-text { font-size: 11px; color: #666; margin-top: 10px; line-height: 1.4; border-top: 1px dashed #ddd; padding-top: 8px; }
 
-        /* 下部指示事項（メモ）バー */
         #instruction-bar {
             position: fixed; bottom: 0; left: 0; width: 100%;
             background: #fdfbf7; color: #334155; padding: 8px 12px;
@@ -161,7 +160,6 @@
             font-size: 11px; font-weight: bold; color: #0284c7;
         }
         
-        /* メモ入力と保存ボタンのレイアウト */
         .instruction-body {
             display: flex; gap: 8px; align-items: center;
         }
@@ -240,7 +238,6 @@
             100% { border-color: #ef4444; }
         }
 
-        /* モバイル・タブレット共通スタイル */
         @media screen and (max-width: 1024px) {
             #ship-header { padding: 5px 10px; height: 40px; }
             .btn-back { font-size: 10px; padding: 4px 8px; }
@@ -263,7 +260,6 @@
             .html-label-memo { font-size: 10px; }
             #mobile-legend-bar { display: flex; }
             
-            /* モバイル/タブレット版メモ表示用の調整 */
             #instruction-bar { padding: 6px 8px; }
             .instruction-input { 
                 height: 48px; 
@@ -272,7 +268,7 @@
                 border-color: #e2e8f0;
                 overflow-y: auto;
             }
-            .btn-save-memo { display: none !important; } /* モバイル/タブレットでは保存ボタンを非表示 */
+            .btn-save-memo { display: none !important; }
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -306,6 +302,7 @@
             <select id="truck-type" style="border: 1px solid #feb2b2; font-weight: bold;">
                 <option value="4t_flat">4t 平 (6.2m / 3,100kg)</option>
                 <option value="4t_wing">4t ウィング (6.2m / 2,800kg)</option>
+                <option value="6t_unic">6t ユニック (5.5m / 5,000kg)</option>
                 <option value="10t_flat">10t 平 (9.6m / 9,500kg)</option>
                 <option value="15t_wing" selected>15t ウィング (9.6m / 12,500kg)</option>
                 <option value="20t_trailer">20t ウィングトレーラー (12.6m / 20,000kg)</option>
@@ -315,14 +312,17 @@
         <div class="preset-section">
             <div class="preset-title">⚡ 定番品のクイック追加</div>
             <div class="preset-buttons">
-                <button class="btn-preset" id="preset-las1000">
-                    ① ラス1000㎡ <span>(2.0m / 1.0t)</span>
+                <button class="btn-preset" id="preset-las500-1000">
+                    ① ラス(500)1000㎡ <span>(2.0m / 1.0t)</span>
                 </button>
-                <button class="btn-preset" id="preset-las2000">
-                    ② ラス2000㎡ <span>(2.0m / 2.0t)</span>
+                <button class="btn-preset" id="preset-las500-2000">
+                    ② ラス(500)2000㎡ <span>(2.0m / 2.0t)</span>
                 </button>
-                <button class="btn-preset" id="preset-las4000">
-                    ③ ラス4000㎡ <span>(4.0m / 4.0t)</span>
+                <button class="btn-preset" id="preset-las500-4000">
+                    ③ ラス(500)4000㎡ <span>(4.0m / 4.0t)</span>
+                </button>
+                <button class="btn-preset" id="preset-las1000-1000">
+                    ④ ラス(1000)1000㎡ <span>(2.0m / 1.0t)</span>
                 </button>
             </div>
         </div>
@@ -338,7 +338,7 @@
 
         <div class="input-group">
             <label style="font-weight: bold; color: #2563eb;">📝 メモ (品名等):</label>
-            <input type="text" id="cargo-memo" value="ラス1000㎡" placeholder="例: ラス1000㎡">
+            <input type="text" id="cargo-memo" value="ラス(500)1000㎡" placeholder="例: ラス(500)1000㎡">
         </div>
         <div class="input-group">
             <label style="font-weight: bold; color: #d97706;">⚖️ 重量 (kg):</label>
@@ -399,7 +399,6 @@
         <ul id="cargo-list" class="cargo-list"></ul>
     </div>
 
-    <!-- 下部指示事項（メモ）バー -->
     <div id="instruction-bar">
         <div id="mobile-legend-bar">
             <div class="legend-item"><span class="legend-dot dot-kinugawa"></span>衣川</div>
@@ -436,7 +435,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // ★スマホ・iPad（iPadOSを含む）・各種タブレット・画面幅1024px以下を閲覧専用とする判定
         const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || 
                          (navigator.maxTouchPoints && navigator.maxTouchPoints > 1) || 
                          window.innerWidth <= 1024;
@@ -461,9 +459,11 @@
             document.getElementById('display-dest').textContent = destVal;
         }
 
+        // トラックサイズ設定
         const TRUCK_SIZES = {
-            "4t_flat":    { name: "4t 平", w: 2.4, h: 0.8, l: 6.2, maxWeight: 3100, isStep: false },
-            "4t_wing":    { name: "4t ウィング", w: 2.4, h: 2.4, l: 6.2, maxWeight: 2800, isStep: false },
+            "4t_flat":    { name: "4t 平", w: 2.15, h: 0.8, l: 6.2, maxWeight: 3100, isStep: false },
+            "4t_wing":    { name: "4t ウィング", w: 2.15, h: 2.4, l: 6.2, maxWeight: 2800, isStep: false },
+            "6t_unic":    { name: "6t ユニック", w: 2.2, h: 0.8, l: 5.5, maxWeight: 5000, isStep: false },
             "10t_flat":   { name: "10t 平", w: 2.4, h: 0.8, l: 9.6, maxWeight: 9500, isStep: false },
             "15t_wing":   { name: "15t ウィング", w: 2.4, h: 2.5, l: 9.6, maxWeight: 12500, isStep: false },
             "20t_trailer":{ 
@@ -756,6 +756,11 @@
             });
         }
 
+        // 数値表示用フォーマット (末尾の不要な0を消し、最大少数第2位まで表示)
+        function formatDim(val) {
+            return Number(val.toFixed(2)).toString();
+        }
+
         function createCargoMesh(id, w, h, l, x, y, z, colorHex, memo, weight, noStack, location = "衣川") {
             let colorVal = typeof colorHex === 'string' ? parseInt(colorHex, 16) : colorHex;
             if (isNaN(colorVal)) colorVal = 0xf87171;
@@ -1036,7 +1041,7 @@
                             </div>
                             <div class="cargo-item-detail">
                                 <span>${cargo.weight}kg</span>
-                                <span>${cargo.w.toFixed(1)}×${cargo.h.toFixed(1)}×${cargo.l.toFixed(1)}m</span>
+                                <span>${formatDim(cargo.w)}×${formatDim(cargo.h)}×${formatDim(cargo.l)}m</span>
                             </div>
                         </div>
                     `;
@@ -1413,26 +1418,36 @@
             updateLabelsVisibility();
         });
 
-        document.getElementById('preset-las1000').addEventListener('click', () => {
+        // --- クイック追加ボタンのイベント処理 ---
+        document.getElementById('preset-las500-1000').addEventListener('click', () => {
             if (isLocked) return;
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 1.2, 0.4, 2.0, -(currentTruck.w / 2 + 4), 0.2, 0, '0xf87171', 'ラス1000㎡', 1000, false, '衣川');
+            const cargoObj = createCargoMesh(newId, 1.2, 0.4, 2.0, -(currentTruck.w / 2 + 4), 0.2, 0, '0xf87171', 'ラス(500)1000㎡', 1000, false, '衣川');
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
 
-        document.getElementById('preset-las2000').addEventListener('click', () => {
+        document.getElementById('preset-las500-2000').addEventListener('click', () => {
             if (isLocked) return;
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 2.4, 0.4, 2.0, -(currentTruck.w / 2 + 4), 0.2, 0, '0xf87171', 'ラス2000㎡', 2000, false, '衣川');
+            const cargoObj = createCargoMesh(newId, 2.4, 0.4, 2.0, -(currentTruck.w / 2 + 4), 0.2, 0, '0xf87171', 'ラス(500)2000㎡', 2000, false, '衣川');
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
 
-        document.getElementById('preset-las4000').addEventListener('click', () => {
+        document.getElementById('preset-las500-4000').addEventListener('click', () => {
             if (isLocked) return;
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 2.4, 0.4, 4.0, -(currentTruck.w / 2 + 4), 0.2, 0, '0xf87171', 'ラス4000㎡', 4000, false, '衣川');
+            const cargoObj = createCargoMesh(newId, 2.4, 0.4, 4.0, -(currentTruck.w / 2 + 4), 0.2, 0, '0xf87171', 'ラス(500)4000㎡', 4000, false, '衣川');
+            selectObject(cargoObj.mesh);
+            saveToCloud();
+        });
+
+        // ラス(1000)1000㎡ (幅: 0.75m, 高さ: 0.6m, 長さ: 2.0m)
+        document.getElementById('preset-las1000-1000').addEventListener('click', () => {
+            if (isLocked) return;
+            const newId = 'cargo_' + Date.now();
+            const cargoObj = createCargoMesh(newId, 0.75, 0.6, 2.0, -(currentTruck.w / 2 + 4), 0.3, 0, '0xf87171', 'ラス(1000)1000㎡', 1000, false, '衣川');
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
