@@ -96,7 +96,6 @@
             z-index: 100; width: 300px; max-height: calc(85vh - 100px); display: flex; flex-direction: column;
             transition: max-height 0.3s ease, padding 0.3s ease;
         }
-        /* ▼ リストパネル折りたたみ時のスタイル ▼ */
         #list-panel.collapsed {
             max-height: 42px !important;
             padding: 8px 12px !important;
@@ -234,14 +233,14 @@
         .dot-maesawa { background-color: #f59e0b; }
         .dot-jnt { background-color: #10b981; }
 
+        /* ▼ 文字の背景を透明に変更したラベルスタイル ▼ */
         .html-label {
             position: absolute; z-index: 50; color: #0f172a; background: transparent;
-            border: none; padding: 0px 3px; font-size: 9.5px; font-weight: bold; pointer-events: none;
+            border: none; padding: 0px; font-size: 9.5px; font-weight: bold; pointer-events: none;
             white-space: nowrap; text-align: left; line-height: 1.2; box-shadow: none;
-            transform: translate(0, -50%); display: none;
-            text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
+            transform: translate(5px, -50%); display: none;
         }
-        .html-label-memo { color: #0f172a; font-size: 9.5px; display: inline; font-weight: bold; }
+        .html-label-memo { color: #0f172a; font-size: 9.5px; display: inline; font-weight: bold; text-shadow: 0px 0px 3px rgba(255,255,255,0.9), 0px 0px 3px rgba(255,255,255,0.9); }
         .html-label-nostack {
             color: #dc2626; font-size: 8px; font-weight: bold; background: #fee2e2;
             border: 1px solid #f87171; padding: 0px 2px; border-radius: 2px; margin-right: 2px;
@@ -418,7 +417,6 @@
         </div>
     </div>
 
-    <!-- ▼ リストパネル (折りたたみ機能付き) ▼ -->
     <div id="list-panel">
         <div class="list-toggle-header" id="list-toggle-header">
             <div style="font-size: 11px; font-weight: bold; color: #475569;">📋 積載リスト・総重量</div>
@@ -441,7 +439,6 @@
             <ul id="cargo-list" class="cargo-list"></ul>
         </div>
     </div>
-    <!-- ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ -->
 
     <div id="instruction-bar">
         <div id="mobile-legend-bar">
@@ -460,7 +457,8 @@
         </div>
     </div>
 
-    <svg id="leader-line-svg" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:39;"></svg>
+    <!-- 引き出線用のSVGは非表示または空に -->
+    <svg id="leader-line-svg" style="display:none; position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:39;"></svg>
     <div id="label-overlay" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:40;"></div>
 
     <script type="module">
@@ -488,7 +486,6 @@
             if (controlPanel) controlPanel.style.display = 'none';
         }
 
-        // ▼ リストパネルの折りたたみトグル機能 ▼
         const listPanel = document.getElementById('list-panel');
         const listToggleHeader = document.getElementById('list-toggle-header');
         const listToggleBtn = document.getElementById('list-toggle-btn');
@@ -503,9 +500,6 @@
             }
         }
         listToggleHeader.addEventListener('click', toggleListPanel);
-
-        // 初期状態でスマホの場合は邪魔にならないように畳んでおくことも可能です（必要に応じてコメントアウト解除）
-        // if (isMobile) { toggleListPanel(); }
 
         const params = new URLSearchParams(window.location.search);
         const dateVal = params.get('date') || 'default-date';
@@ -852,13 +846,7 @@
             labelEl.innerHTML = `${noStackBadgeHtml}<span class="html-label-memo">${escapeHTML(memo || '荷物')}</span>`;
             labelOverlay.appendChild(labelEl);
 
-            const lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-            lineEl.setAttribute('stroke', '#ef4444');
-            lineEl.setAttribute('stroke-width', '1.5');
-            lineEl.style.display = 'none';
-            leaderLineSvg.appendChild(lineEl);
-
-            const cargoObj = { id, mesh, w, h, l, colorHex, memo, weight, noStack, location, labelEl, lineEl };
+            const cargoObj = { id, mesh, w, h, l, colorHex, memo, weight, noStack, location, labelEl };
             loadedCargos.push(cargoObj);
 
             return cargoObj;
@@ -965,7 +953,6 @@
             loadedCargos.forEach(c => {
                 scene.remove(c.mesh);
                 if (c.labelEl) c.labelEl.remove();
-                if (c.lineEl) c.lineEl.remove();
             });
             loadedCargos = [];
             dragObjects.length = 0;
@@ -1136,8 +1123,7 @@
             const mode = isMobile ? 'all' : (labelModeEl ? labelModeEl.value : 'selected');
             for (let cargo of loadedCargos) {
                 const element = cargo.labelEl;
-                const lineEl = cargo.lineEl;
-                if (!element || !lineEl) continue;
+                if (!element) continue;
 
                 let show = false;
                 if (mode === 'all') show = true;
@@ -1145,7 +1131,6 @@
                 else if (mode === 'none') show = false;
 
                 element.style.display = show ? 'block' : 'none';
-                lineEl.style.display = show ? 'block' : 'none';
             }
         }
 
@@ -1405,7 +1390,6 @@
                 const cargo = loadedCargos[index];
                 scene.remove(cargo.mesh);
                 if (cargo.labelEl) cargo.labelEl.remove();
-                if (cargo.lineEl) cargo.lineEl.remove();
                 
                 const dragIdx = dragObjects.indexOf(cargo.mesh);
                 if (dragIdx !== -1) dragObjects.splice(dragIdx, 1);
@@ -1530,7 +1514,7 @@
             const heightHalf = (window.innerHeight - headerHeight()) / 2;
 
             for (let cargo of loadedCargos) {
-                if (!cargo.labelEl || !cargo.lineEl || cargo.labelEl.style.display === 'none') continue;
+                if (!cargo.labelEl || cargo.labelEl.style.display === 'none') continue;
 
                 const mesh = cargo.mesh;
 
@@ -1557,25 +1541,15 @@
 
                 if (tempV.z > 1) {
                     cargo.labelEl.style.opacity = '0';
-                    cargo.lineEl.style.display = 'none';
                     continue;
                 }
 
-                const startScreenX = (tempV.x * widthHalf) + widthHalf;
-                const startScreenY = -(tempV.y * heightHalf) + heightHalf + headerHeight();
+                const screenX = (tempV.x * widthHalf) + widthHalf;
+                const screenY = -(tempV.y * heightHalf) + heightHalf + headerHeight();
 
-                const labelScreenX = startScreenX + 45;
-                const labelScreenY = startScreenY - 40;
-
-                cargo.labelEl.style.left = `${labelScreenX}px`;
-                cargo.labelEl.style.top = `${labelScreenY}px`;
+                cargo.labelEl.style.left = `${screenX}px`;
+                cargo.labelEl.style.top = `${screenY}px`;
                 cargo.labelEl.style.opacity = '1';
-
-                cargo.lineEl.setAttribute('x1', startScreenX);
-                cargo.lineEl.setAttribute('y1', startScreenY);
-                cargo.lineEl.setAttribute('x2', labelScreenX);
-                cargo.lineEl.setAttribute('y2', labelScreenY);
-                cargo.lineEl.style.display = 'block';
             }
         }
 
