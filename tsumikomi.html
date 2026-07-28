@@ -93,7 +93,7 @@
             position: absolute; top: 55px; right: 10px;
             background: rgba(255, 255, 255, 0.98); padding: 12px;
             border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-            z-index: 100; width: 300px; max-height: calc(85vh - 100px); display: flex; flex-direction: column;
+            z-index: 100; width: 320px; max-height: calc(85vh - 100px); display: flex; flex-direction: column;
             transition: max-height 0.3s ease, padding 0.3s ease;
         }
         #list-panel.collapsed {
@@ -101,23 +101,12 @@
             padding: 8px 12px !important;
             overflow: hidden;
         }
-        #list-panel.collapsed #collapsible-content {
-            display: none;
-        }
-        #list-panel.collapsed .summary-box {
-            margin-bottom: 0;
-            padding: 4px 8px;
-        }
-        #list-panel.collapsed .summary-row {
-            margin-bottom: 0;
-        }
+        #list-panel.collapsed #collapsible-content { display: none; }
+        #list-panel.collapsed .summary-box { margin-bottom: 0; padding: 4px 8px; }
+        #list-panel.collapsed .summary-row { margin-bottom: 0; }
         #list-panel.collapsed .max-weight-info,
-        #list-panel.collapsed .summary-title {
-            display: none;
-        }
-        #list-panel.collapsed .summary-weight {
-            font-size: 13px;
-        }
+        #list-panel.collapsed .summary-title { display: none; }
+        #list-panel.collapsed .summary-weight { font-size: 13px; }
 
         .list-toggle-header {
             display: flex; justify-content: space-between; align-items: center;
@@ -149,21 +138,47 @@
 
         .cargo-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 8px; }
         
-        .location-group { display: flex; flex-direction: column; gap: 4px; }
+        /* 拠点グループヘッダーの拡張 */
+        .location-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
         .location-header {
-            background: #f1f5f9; border-left: 3px solid #0284c7; padding: 4px 8px;
-            font-size: 11px; font-weight: bold; color: #334155; display: flex; justify-content: space-between; align-items: center;
-            border-radius: 2px;
+            background: #e2e8f0; border-left: 4px solid #0284c7; padding: 6px 8px;
+            font-size: 11px; font-weight: bold; color: #1e293b; display: flex; justify-content: space-between; align-items: center;
+            border-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
         }
-        .location-subtotal { font-size: 10px; color: #0284c7; font-weight: bold; }
+        .location-header-title { display: flex; align-items: center; gap: 6px; }
+        .location-header-checkbox {
+            width: 16px; height: 16px; cursor: pointer; accent-color: #059669; transform: scale(1.1);
+        }
+        .location-progress { font-size: 10px; color: #0369a1; font-weight: bold; background: #e0f2fe; padding: 1px 5px; border-radius: 8px; }
+        .location-subtotal { font-size: 10px; color: #475569; font-weight: bold; }
 
+        /* リストアイテム＆チェックボックス */
         .cargo-item {
-            display: flex; align-items: center; justify-content: space-between;
+            display: flex; align-items: center; gap: 8px;
             padding: 6px 8px; border: 1px solid #e2e8f0; font-size: 12px;
             cursor: pointer; border-radius: 4px; transition: background 0.1s; background: #fff;
         }
         .cargo-item:hover { background-color: #f8fafc; }
         .cargo-item.selected { background-color: #e0f2fe; border-color: #0284c7; }
+        
+        .cargo-item.checked {
+            background-color: #f1f5f9;
+            opacity: 0.75;
+        }
+        .cargo-item.checked .cargo-item-name {
+            text-decoration: line-through;
+            color: #64748b;
+        }
+
+        .cargo-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            accent-color: #10b981;
+            flex-shrink: 0;
+            transform: scale(1.15);
+        }
+
         .cargo-item-info { display: flex; flex-direction: column; gap: 2px; width: 100%; }
         .cargo-item-header { display: flex; justify-content: space-between; align-items: center; width: 100%; }
         .cargo-item-name { font-weight: bold; color: #1e293b; display: flex; align-items: center; gap: 4px; }
@@ -172,6 +187,7 @@
         .status-badge { font-size: 9px; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
         .badge-loaded { background: #dcfce7; color: #15803d; }
         .badge-unloaded { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
+        .badge-checked { background: #10b981; color: #ffffff; }
         .badge-nostack { background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; font-size: 9px; padding: 1px 4px; border-radius: 3px; font-weight: bold; }
 
         .btn-item-delete {
@@ -194,9 +210,7 @@
             font-size: 11px; font-weight: bold; color: #0284c7;
         }
         
-        .instruction-body {
-            display: flex; gap: 8px; align-items: center;
-        }
+        .instruction-body { display: flex; gap: 8px; align-items: center; }
         .instruction-input {
             flex-grow: 1; background: #ffffff; color: #1e293b; border: 1px solid #cbd5e1;
             border-radius: 6px; padding: 6px 10px; font-size: 12px; box-sizing: border-box;
@@ -260,16 +274,8 @@
         }
         .custom-alert-btn:hover { background: #0369a1; }
 
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-        @keyframes pulse-border {
-            0% { border-color: #ef4444; }
-            50% { border-color: #b91c1c; }
-            100% { border-color: #ef4444; }
-        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        @keyframes pulse-border { 0% { border-color: #ef4444; } 50% { border-color: #b91c1c; } 100% { border-color: #ef4444; } }
 
         @media screen and (max-width: 1024px) {
             #ship-header { padding: 5px 10px; height: 40px; }
@@ -278,17 +284,19 @@
             .ship-dest { font-size: 15px; }
 
             #list-panel {
-                top: 48px; right: 8px; width: calc(100% - 16px); max-width: 340px; 
-                max-height: 210px; background: rgba(255, 255, 255, 0.92);
+                top: 48px; right: 8px; width: calc(100% - 16px); max-width: 350px; 
+                max-height: 250px; background: rgba(255, 255, 255, 0.95);
                 backdrop-filter: blur(4px); padding: 8px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             }
             .summary-box { padding: 6px 8px; margin-bottom: 6px; }
             .summary-title { font-size: 10px; margin: 0; }
             .summary-weight { font-size: 15px; }
-            .cargo-list { max-height: 110px; overflow-y: auto; }
-            .cargo-item { padding: 4px 6px; }
+            .cargo-list { max-height: 150px; overflow-y: auto; }
+            .cargo-item { padding: 6px; }
             .cargo-item-name { font-size: 11px; }
             .cargo-item-detail { font-size: 10px; }
+            .cargo-checkbox { width: 20px; height: 20px; transform: scale(1.2); }
+            .location-header-checkbox { width: 18px; height: 18px; transform: scale(1.2); }
             .html-label { font-size: 9px; }
             .html-label-memo { font-size: 9px; }
             #mobile-legend-bar { display: flex; }
@@ -418,7 +426,7 @@
 
     <div id="list-panel">
         <div class="list-toggle-header" id="list-toggle-header">
-            <div style="font-size: 11px; font-weight: bold; color: #475569;">📋 積載リスト・総重量</div>
+            <div style="font-size: 11px; font-weight: bold; color: #475569;">📋 積載リスト・各拠点進捗</div>
             <button id="list-toggle-btn" class="btn-list-toggle">▲ 閉じる</button>
         </div>
         
@@ -434,7 +442,7 @@
                     <span id="overweight-text" class="overweight-msg">⚠️ +0 kg</span>
                 </div>
             </div>
-            <div style="font-size: 11px; font-weight: bold; color: #475569; margin-bottom: 4px;">📦 全荷物 (<span id="cargo-count">0</span>個)</div>
+            <div style="font-size: 11px; font-weight: bold; color: #475569; margin-bottom: 4px;">📦 積み込み進捗・全荷物 (<span id="cargo-count">0</span>個)</div>
             <ul id="cargo-list" class="cargo-list"></ul>
         </div>
     </div>
@@ -754,10 +762,8 @@
                 const group = new THREE.Group();
                 const tireMesh = new THREE.Mesh(tireGeo, tireMat);
                 const wheelMesh = new THREE.Mesh(wheelGeo, wheelMat);
-                
                 tireMesh.renderOrder = 10;
                 wheelMesh.renderOrder = 10;
-
                 group.add(tireMesh);
                 group.add(wheelMesh);
                 return group;
@@ -766,7 +772,6 @@
             const frontWheelZ = cabZ;
             const rearWheelZ1 = currentTruck.l * 0.25;
             const rearWheelZ2 = currentTruck.l * 0.38;
-
             const trackWidth = currentTruck.w - tireWidth + 0.05;
 
             function addWheelPair(zPos) {
@@ -859,11 +864,9 @@
         const saveMemoBtn = document.getElementById('save-memo-btn');
         const saveStatusMsg = document.getElementById('save-status-msg');
 
-        if (instructionInput) {
-            if (isMobile) {
-                instructionInput.readOnly = true;
-                instructionInput.placeholder = "メモなし";
-            }
+        if (instructionInput && isMobile) {
+            instructionInput.readOnly = true;
+            instructionInput.placeholder = "メモなし";
         }
 
         function escapeHTML(str) {
@@ -876,7 +879,7 @@
             return Number(val.toFixed(2)).toString();
         }
 
-        function createCargoMesh(id, w, h, l, x, y, z, colorHex, memo, weight, noStack, location = "衣川") {
+        function createCargoMesh(id, w, h, l, x, y, z, colorHex, memo, weight, noStack, location = "衣川", checked = false) {
             let colorVal = typeof colorHex === 'string' ? parseInt(colorHex, 16) : colorHex;
             if (isNaN(colorVal)) colorVal = 0xf87171;
 
@@ -891,7 +894,7 @@
             });
             const mesh = new THREE.Mesh(geo, mat);
             mesh.position.set(x, y, z);
-            mesh.userData = { id, w, h, l, colorHex, memo, weight, noStack, location };
+            mesh.userData = { id, w, h, l, colorHex, memo, weight, noStack, location, checked };
 
             const edges = new THREE.EdgesGeometry(geo);
             const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1, transparent: true, opacity: 0.8 }));
@@ -906,7 +909,7 @@
             labelEl.innerHTML = `${noStackBadgeHtml}<span class="html-label-memo">${escapeHTML(memo || '荷物')}</span>`;
             labelOverlay.appendChild(labelEl);
 
-            const cargoObj = { id, mesh, w, h, l, colorHex, memo, weight, noStack, location, labelEl };
+            const cargoObj = { id, mesh, w, h, l, colorHex, memo, weight, noStack, location, checked, labelEl };
             loadedCargos.push(cargoObj);
 
             return cargoObj;
@@ -954,7 +957,7 @@
         }
 
         async function saveToCloud() {
-            if (isRemoteUpdating || isMobile) return;
+            if (isRemoteUpdating) return;
 
             const cargoDataList = loadedCargos.map(cargo => ({
                 id: cargo.id,
@@ -968,7 +971,8 @@
                 memo: cargo.memo,
                 weight: cargo.weight,
                 noStack: cargo.noStack,
-                location: cargo.location || "衣川"
+                location: cargo.location || "衣川",
+                checked: !!cargo.checked
             }));
 
             try {
@@ -1019,7 +1023,7 @@
 
             if (data.cargos && Array.isArray(data.cargos)) {
                 data.cargos.forEach(item => {
-                    createCargoMesh(item.id, item.w, item.h, item.l, item.x, item.y, item.z, item.color, item.memo, item.weight, !!item.noStack, item.location || "衣川");
+                    createCargoMesh(item.id, item.w, item.h, item.l, item.x, item.y, item.z, item.color, item.memo, item.weight, !!item.noStack, item.location || "衣川", !!item.checked);
                 });
             }
 
@@ -1059,6 +1063,7 @@
 
         const LOCATION_ORDER = ["衣川", "インター", "前沢", "JNT"];
 
+        // 各拠点の進捗計算・一括チェック対応リスト描画
         function updateSummaryAndList() {
             let totalWeight = 0;
             cargoListEl.innerHTML = '';
@@ -1067,14 +1072,11 @@
             LOCATION_ORDER.forEach(loc => { groupedCargos[loc] = []; });
 
             loadedCargos.forEach((cargo) => {
-                const inTruck = isInsideTruck(cargo);
-                if (inTruck) {
+                if (isInsideTruck(cargo)) {
                     totalWeight += cargo.weight;
                 }
                 const loc = LOCATION_ORDER.includes(cargo.location) ? cargo.location : "衣川";
-                if (!groupedCargos[loc]) {
-                    groupedCargos[loc] = [];
-                }
+                if (!groupedCargos[loc]) groupedCargos[loc] = [];
                 groupedCargos[loc].push(cargo);
             });
 
@@ -1116,24 +1118,52 @@
                 groupContainer.className = 'location-group';
 
                 const subtotalWeight = list.reduce((sum, c) => sum + (isInsideTruck(c) ? c.weight : 0), 0);
-                
+                const checkedCount = list.filter(c => c.checked).length;
+                const totalCount = list.length;
+                const percent = Math.round((checkedCount / totalCount) * 100);
+                const allChecked = checkedCount === totalCount;
+
                 const headerEl = document.createElement('div');
                 headerEl.className = 'location-header';
                 headerEl.innerHTML = `
-                    <span>📍 ${loc} (${list.length}件)</span>
+                    <div class="location-header-title">
+                        <input type="checkbox" class="location-header-checkbox" ${allChecked ? 'checked' : ''} title="${loc}の全荷物を一括チェック">
+                        <span>📍 ${loc}</span>
+                        <span class="location-progress">${checkedCount}/${totalCount}件 (${percent}%)</span>
+                    </div>
                     <span class="location-subtotal">小計: ${subtotalWeight.toLocaleString()}kg</span>
                 `;
+
+                // 拠点ヘッダーの一括チェックボックスイベント
+                const locCheckbox = headerEl.querySelector('.location-header-checkbox');
+                locCheckbox.addEventListener('click', (e) => e.stopPropagation());
+                locCheckbox.addEventListener('change', (e) => {
+                    const targetState = e.target.checked;
+                    list.forEach(c => { c.checked = targetState; });
+                    updateSummaryAndList();
+                    saveToCloud();
+                });
+
                 groupContainer.appendChild(headerEl);
 
                 list.forEach((cargo) => {
                     const inTruck = isInsideTruck(cargo);
                     const li = document.createElement('li');
-                    li.className = 'cargo-item' + (selectedObject === cargo.mesh ? ' selected' : '');
+                    
+                    let itemClass = 'cargo-item';
+                    if (selectedObject === cargo.mesh) itemClass += ' selected';
+                    if (cargo.checked) itemClass += ' checked';
+                    li.className = itemClass;
                     
                     let deleteBtnHtml = (isMobile || isLocked) ? '' : '<button class="btn-item-delete" title="削除">🗑️</button>';
                     const noStackItemBadge = cargo.noStack ? '<span class="badge-nostack">⚠️上積不可</span>' : '';
                     
+                    let statusBadgeHtml = cargo.checked 
+                        ? '<span class="status-badge badge-checked">✓ 済</span>'
+                        : `<span class="status-badge ${inTruck ? 'badge-loaded' : 'badge-unloaded'}">${inTruck ? '荷台' : '仮置き'}</span>`;
+
                     li.innerHTML = `
+                        <input type="checkbox" class="cargo-checkbox" ${cargo.checked ? 'checked' : ''}>
                         <div class="cargo-item-info">
                             <div class="cargo-item-header">
                                 <span class="cargo-item-name">
@@ -1141,9 +1171,7 @@
                                     ${noStackItemBadge}
                                 </span>
                                 <div style="display:flex; align-items:center; gap:4px;">
-                                    <span class="status-badge ${inTruck ? 'badge-loaded' : 'badge-unloaded'}">
-                                        ${inTruck ? '荷台' : '仮置き'}
-                                    </span>
+                                    ${statusBadgeHtml}
                                     ${deleteBtnHtml}
                                 </div>
                             </div>
@@ -1154,8 +1182,16 @@
                         </div>
                     `;
 
+                    const checkboxEl = li.querySelector('.cargo-checkbox');
+                    checkboxEl.addEventListener('click', (e) => e.stopPropagation());
+                    checkboxEl.addEventListener('change', (e) => {
+                        cargo.checked = e.target.checked;
+                        updateSummaryAndList();
+                        saveToCloud();
+                    });
+
                     li.addEventListener('click', (e) => {
-                        if (e.target.classList.contains('btn-item-delete')) return;
+                        if (e.target.classList.contains('btn-item-delete') || e.target.classList.contains('cargo-checkbox')) return;
                         selectObject(cargo.mesh);
                     });
 
@@ -1477,7 +1513,7 @@
             const location = selectedOption.getAttribute('data-loc') || '衣川';
 
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, w, h, l, -(currentTruck.w / 2 + 4), bedBottomY + h / 2, 0, colorHex, memo, weight, noStack, location);
+            const cargoObj = createCargoMesh(newId, w, h, l, -(currentTruck.w / 2 + 4), bedBottomY + h / 2, 0, colorHex, memo, weight, noStack, location, false);
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
@@ -1529,7 +1565,7 @@
         document.getElementById('preset-las500-1000').addEventListener('click', () => {
             if (isLocked) return;
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 1.2, 0.4, 2.0, -(currentTruck.w / 2 + 4), bedBottomY + 0.2, 0, '0xf87171', 'ラス(500)1000㎡', 1000, false, '衣川');
+            const cargoObj = createCargoMesh(newId, 1.2, 0.4, 2.0, -(currentTruck.w / 2 + 4), bedBottomY + 0.2, 0, '0xf87171', 'ラス(500)1000㎡', 1000, false, '衣川', false);
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
@@ -1537,7 +1573,7 @@
         document.getElementById('preset-las500-2000').addEventListener('click', () => {
             if (isLocked) return;
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 2.4, 0.4, 2.0, -(currentTruck.w / 2 + 4), bedBottomY + 0.2, 0, '0xf87171', 'ラス(500)2000㎡', 2000, false, '衣川');
+            const cargoObj = createCargoMesh(newId, 2.4, 0.4, 2.0, -(currentTruck.w / 2 + 4), bedBottomY + 0.2, 0, '0xf87171', 'ラス(500)2000㎡', 2000, false, '衣川', false);
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
@@ -1545,7 +1581,7 @@
         document.getElementById('preset-las500-4000').addEventListener('click', () => {
             if (isLocked) return;
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 2.4, 0.4, 4.0, -(currentTruck.w / 2 + 4), bedBottomY + 0.2, 0, '0xf87171', 'ラス(500)4000㎡', 4000, false, '衣川');
+            const cargoObj = createCargoMesh(newId, 2.4, 0.4, 4.0, -(currentTruck.w / 2 + 4), bedBottomY + 0.2, 0, '0xf87171', 'ラス(500)4000㎡', 4000, false, '衣川', false);
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
@@ -1553,7 +1589,7 @@
         document.getElementById('preset-las1000-1000').addEventListener('click', () => {
             if (isLocked) return;
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 0.7, 0.6, 2.0, -(currentTruck.w / 2 + 4), bedBottomY + 0.3, 0, '0xf87171', 'ラス(1000)1000㎡', 1000, false, '衣川');
+            const cargoObj = createCargoMesh(newId, 0.7, 0.6, 2.0, -(currentTruck.w / 2 + 4), bedBottomY + 0.3, 0, '0xf87171', 'ラス(1000)1000㎡', 1000, false, '衣川', false);
             selectObject(cargoObj.mesh);
             saveToCloud();
         });
