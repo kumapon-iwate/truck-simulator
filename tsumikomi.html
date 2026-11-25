@@ -31,6 +31,14 @@
             background: #059669; color: white;
         }
 
+        .write-auth-btn {
+            background: #d97706; color: white; border: none; font-size: 11px; font-weight: bold;
+            padding: 4px 10px; border-radius: 4px; cursor: pointer; white-space: nowrap;
+            transition: background 0.2s;
+        }
+        .write-auth-btn:hover { background: #b45309; }
+        .write-auth-btn.authorized { background: #059669; }
+
         .weight-alert-badge {
             background: #dc2626; color: #ffffff; font-size: 11px; font-weight: bold;
             padding: 3px 8px; border-radius: 4px; border: 1px solid #f87171;
@@ -138,7 +146,6 @@
 
         .cargo-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; display: flex; flex-direction: column; gap: 8px; }
         
-        /* 拠点グループヘッダーの拡張 */
         .location-group { display: flex; flex-direction: column; gap: 4px; margin-bottom: 4px; }
         .location-header {
             background: #e2e8f0; border-left: 4px solid #0284c7; padding: 6px 8px;
@@ -152,7 +159,6 @@
         .location-progress { font-size: 10px; color: #0369a1; font-weight: bold; background: #e0f2fe; padding: 1px 5px; border-radius: 8px; }
         .location-subtotal { font-size: 10px; color: #475569; font-weight: bold; }
 
-        /* リストアイテム＆チェックボックス */
         .cargo-item {
             display: flex; align-items: center; gap: 8px;
             padding: 6px 8px; border: 1px solid #e2e8f0; font-size: 12px;
@@ -218,7 +224,7 @@
             box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
         }
         .instruction-input:focus { border-color: #0284c7; background: #ffffff; box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15); }
-        .instruction-input:disabled { background: #f1f5f9; color: #64748b; cursor: default; border-color: #cbd5e1; }
+        .instruction-input:disabled, .instruction-input[readonly] { background: #f1f5f9; color: #64748b; cursor: default; border-color: #cbd5e1; }
 
         .btn-save-memo {
             background-color: #0284c7; color: white; border: none;
@@ -282,6 +288,7 @@
             .btn-back { font-size: 10px; padding: 4px 8px; }
             .ship-date { font-size: 11px; }
             .ship-dest { font-size: 15px; }
+            .write-auth-btn { font-size: 10px; padding: 3px 8px; }
 
             #list-panel {
                 top: 48px; right: 8px; width: calc(100% - 16px); max-width: 350px; 
@@ -332,7 +339,7 @@
             <span id="read-only-tag" class="read-only-badge">🔓 積載は確定してません</span>
             <span id="header-weight-alert" class="weight-alert-badge">⚠️ 重量オーバー！</span>
         </div>
-        <div style="width: 40px;"></div>
+        <button id="write-auth-btn" class="write-auth-btn" title="書き込み用パスワードを入力">🔑 編集認証</button>
     </div>
 
     <div id="control-panel">
@@ -418,6 +425,7 @@
 
         <div class="help-text">
             💡 <strong>操作方法:</strong><br>
+            ・閲覧はパスワード不要です。編集・保存にはPW（3511）が必要です<br>
             ・**仮置きエリア**: 文字が書かれた領域へ移動・保管できます<br>
             ・**角スナップ**: 角や他の荷物に近づくとカチッと吸着<br>
             ・高さ調整：選択中に [W] で上、[S] で下移動
@@ -470,6 +478,9 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const WRITE_PASSWORD = "3511";
+        const UNLOCK_PASSWORD = "3512";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBTDrCLBRZzzeo_kPe6NEWxbeLJDTKE4Io",
@@ -545,6 +556,7 @@
         let currentTruckType = "15t_wing";
         let currentTruck = TRUCK_SIZES[currentTruckType];
         let isLocked = false;
+        let isWriteAuthorized = false;
 
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xf0f2f5);
@@ -581,6 +593,33 @@
             };
 
             btn.addEventListener('click', closeAlert);
+        }
+
+        function ensureWriteAuthorized() {
+            if (isWriteAuthorized) return true;
+            const pw = prompt("書き込み・編集を行うためのパスワードを入力してください（閲覧は不要です）:");
+            if (pw === null) return false;
+            if (pw === WRITE_PASSWORD) {
+                isWriteAuthorized = true;
+                updateLockUI();
+                showCustomAlert("編集パスワードが認証されました。書き込みが可能です。");
+                return true;
+            }
+            showCustomAlert("書き込みパスワードが違います。");
+            return false;
+        }
+
+        const writeAuthBtn = document.getElementById('write-auth-btn');
+        if (writeAuthBtn) {
+            writeAuthBtn.addEventListener('click', () => {
+                if (isWriteAuthorized) {
+                    isWriteAuthorized = false;
+                    updateLockUI();
+                    showCustomAlert("閲覧モードに戻しました。");
+                } else {
+                    ensureWriteAuthorized();
+                }
+            });
         }
 
         scene.add(new THREE.AmbientLight(0xffffff, 0.6));
@@ -922,7 +961,25 @@
             const unloadAllBtn = document.getElementById('unload-all-btn');
             const truckTypeSelect = document.getElementById('truck-type');
 
-            if (isLocked) {
+            if (writeAuthBtn) {
+                if (isWriteAuthorized) {
+                    writeAuthBtn.textContent = "✏️ 編集可 (PW済)";
+                    writeAuthBtn.classList.add('authorized');
+                } else {
+                    writeAuthBtn.textContent = "🔑 編集認証";
+                    writeAuthBtn.classList.remove('authorized');
+                }
+            }
+
+            const canEdit = isWriteAuthorized && !isLocked;
+
+	// 閲覧モード時は車種・積み荷設定を非表示
+	const controlPanel = document.getElementById('control-panel');
+	if (controlPanel) {
+    	controlPanel.style.display = canEdit ? 'block' : 'none';
+	}
+
+	if (isLocked) {
                 if (lockBtn) {
                     lockBtn.textContent = "🔓 ロックを解除する (要PW)";
                     lockBtn.classList.add('locked');
@@ -932,32 +989,33 @@
                     readOnlyTag.classList.remove('unlocked');
                     readOnlyTag.style.display = 'inline-block';
                 }
-                if (addBtn) addBtn.disabled = true;
-                if (unloadAllBtn) unloadAllBtn.disabled = true;
-                if (truckTypeSelect) truckTypeSelect.disabled = true;
-                if (instructionInput) instructionInput.readOnly = true;
-                if (saveMemoBtn) saveMemoBtn.disabled = true;
             } else {
                 if (lockBtn) {
                     lockBtn.textContent = "🔒 積載を確定する（ロック）";
                     lockBtn.classList.remove('locked');
                 }
                 if (readOnlyTag) {
-                    readOnlyTag.textContent = "🔓 積載は確定してません";
-                    readOnlyTag.classList.add('unlocked');
+                    readOnlyTag.textContent = isWriteAuthorized ? "🔓 積載は確定してません" : "👁️ 閲覧モード (要PW)";
+                    readOnlyTag.classList.toggle('unlocked', isWriteAuthorized);
                     readOnlyTag.style.display = 'inline-block';
                 }
-                if (addBtn) addBtn.disabled = false;
-                if (unloadAllBtn) unloadAllBtn.disabled = false;
-                if (truckTypeSelect) truckTypeSelect.disabled = false;
-                if (instructionInput) instructionInput.readOnly = isMobile;
-                if (saveMemoBtn) saveMemoBtn.disabled = false;
             }
+
+            if (addBtn) addBtn.disabled = !canEdit;
+            if (unloadAllBtn) unloadAllBtn.disabled = !canEdit;
+            if (truckTypeSelect) truckTypeSelect.disabled = !canEdit;
+            if (instructionInput) instructionInput.readOnly = isMobile || !canEdit;
+            if (saveMemoBtn) saveMemoBtn.disabled = !canEdit;
+
             updateSummaryAndList();
         }
 
         async function saveToCloud() {
-            if (isRemoteUpdating) return;
+            if (isRemoteUpdating) return false;
+            if (!isWriteAuthorized) {
+                showCustomAlert("書き込み権限がありません。「🔑 編集認証」からパスワード（3511）を入力してください。");
+                return false;
+            }
 
             const cargoDataList = loadedCargos.map(cargo => ({
                 id: cargo.id,
@@ -1035,6 +1093,7 @@
         if (saveMemoBtn) {
             saveMemoBtn.addEventListener('click', async () => {
                 if (isLocked || isMobile) return;
+                if (!ensureWriteAuthorized()) return;
                 saveMemoBtn.disabled = true;
                 saveMemoBtn.textContent = '...保存中';
                 
@@ -1063,7 +1122,6 @@
 
         const LOCATION_ORDER = ["衣川", "インター", "前沢", "JNT"];
 
-        // 各拠点の進捗計算・一括チェック対応リスト描画
         function updateSummaryAndList() {
             let totalWeight = 0;
             cargoListEl.innerHTML = '';
@@ -1134,10 +1192,14 @@
                     <span class="location-subtotal">小計: ${subtotalWeight.toLocaleString()}kg</span>
                 `;
 
-                // 拠点ヘッダーの一括チェックボックスイベント
                 const locCheckbox = headerEl.querySelector('.location-header-checkbox');
                 locCheckbox.addEventListener('click', (e) => e.stopPropagation());
                 locCheckbox.addEventListener('change', (e) => {
+                    const prevState = !e.target.checked;
+                    if (!ensureWriteAuthorized()) {
+                        e.target.checked = prevState;
+                        return;
+                    }
                     const targetState = e.target.checked;
                     list.forEach(c => { c.checked = targetState; });
                     updateSummaryAndList();
@@ -1185,6 +1247,11 @@
                     const checkboxEl = li.querySelector('.cargo-checkbox');
                     checkboxEl.addEventListener('click', (e) => e.stopPropagation());
                     checkboxEl.addEventListener('change', (e) => {
+                        const prevState = !e.target.checked;
+                        if (!ensureWriteAuthorized()) {
+                            e.target.checked = prevState;
+                            return;
+                        }
                         cargo.checked = e.target.checked;
                         updateSummaryAndList();
                         saveToCloud();
@@ -1200,6 +1267,7 @@
                         if (delBtnEl) {
                             delBtnEl.addEventListener('click', (e) => {
                                 e.stopPropagation();
+                                if (!ensureWriteAuthorized()) return;
                                 deleteCargo(cargo.mesh);
                             });
                         }
@@ -1400,6 +1468,12 @@
             if (intersects.length > 0) {
                 const hitObj = intersects[0].object;
 
+                if (!isWriteAuthorized) {
+                    selectObject(hitObj);
+                    ensureWriteAuthorized();
+                    return;
+                }
+
                 if (hasCargoAbove(hitObj)) {
                     showCustomAlert("⚠️ 上に荷物が載っているため動かせません。上の荷物を先に移動してください。");
                     return;
@@ -1420,7 +1494,7 @@
         }
 
         function onPointerMove(event) {
-            if (isMobile || isLocked || !isDragging || !selectedObject) return;
+            if (isMobile || isLocked || !isWriteAuthorized || !isDragging || !selectedObject) return;
 
             const clickY = event.clientY - headerHeight();
             const canvasHeight = window.innerHeight - headerHeight();
@@ -1459,7 +1533,7 @@
         window.addEventListener('pointerup', onPointerUp);
 
         window.addEventListener('keydown', (e) => {
-            if (isMobile || isLocked || !selectedObject) return;
+            if (isMobile || isLocked || !isWriteAuthorized || !selectedObject) return;
             if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
 
             const step = 0.1;
@@ -1477,7 +1551,7 @@
         });
 
         function deleteCargo(targetMesh) {
-            if (isLocked || !targetMesh) return;
+            if (isLocked || !isWriteAuthorized || !targetMesh) return;
 
             if (hasCargoAbove(targetMesh)) {
                 showCustomAlert("⚠️ 上に荷物が載っているため削除できません。上の荷物を先に移動してください。");
@@ -1500,7 +1574,7 @@
         }
 
         document.getElementById('add-btn').addEventListener('click', () => {
-            if (isLocked) return;
+            if (isLocked || !ensureWriteAuthorized()) return;
             const memo = document.getElementById('cargo-memo').value || '荷物';
             const weight = parseFloat(document.getElementById('cargo-weight').value) || 0;
             const noStack = document.getElementById('cargo-nostack').checked;
@@ -1519,7 +1593,7 @@
         });
 
         document.getElementById('unload-all-btn').addEventListener('click', () => {
-            if (isLocked) return;
+            if (isLocked || !ensureWriteAuthorized()) return;
             let offsetZ = -currentTruck.l / 2 + 1;
             loadedCargos.forEach(cargo => {
                 cargo.mesh.position.set(-(currentTruck.w / 2 + 4), bedBottomY + cargo.h / 2, offsetZ);
@@ -1531,6 +1605,7 @@
 
         document.getElementById('lock-toggle-btn').addEventListener('click', () => {
             if (!isLocked) {
+                if (!ensureWriteAuthorized()) return;
                 if (confirm("積載状態を確定（ロック）しますか？\n他の人が荷物を動かせなくなります。")) {
                     isLocked = true;
                     updateLockUI();
@@ -1538,8 +1613,9 @@
                 }
             } else {
                 const pw = prompt("ロックを解除するためのパスワードを入力してください:");
-                if (pw === "3511") {
+                if (pw === UNLOCK_PASSWORD) {
                     isLocked = false;
+                    isWriteAuthorized = true;
                     updateLockUI();
                     saveToCloud();
                     showCustomAlert("ロックを解除しました。");
@@ -1550,7 +1626,10 @@
         });
 
         document.getElementById('truck-type').addEventListener('change', (e) => {
-            if (isLocked) return;
+            if (isLocked || !ensureWriteAuthorized()) {
+                e.target.value = currentTruckType;
+                return;
+            }
             currentTruckType = e.target.value;
             currentTruck = TRUCK_SIZES[currentTruckType];
             updateTruckGeometry();
@@ -1562,36 +1641,28 @@
             updateLabelsVisibility();
         });
 
-        document.getElementById('preset-las500-1000').addEventListener('click', () => {
-            if (isLocked) return;
+        function addPresetCargo(w, h, l, weight, memo) {
+            if (isLocked || !ensureWriteAuthorized()) return;
             const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 1.2, 0.4, 2.0, -(currentTruck.w / 2 + 4), bedBottomY + 0.2, 0, '0xf87171', 'ラス(500)1000㎡', 1000, false, '衣川', false);
+            const cargoObj = createCargoMesh(newId, w, h, l, -(currentTruck.w / 2 + 4), bedBottomY + h / 2, 0, '0xf87171', memo, weight, false, '衣川', false);
             selectObject(cargoObj.mesh);
             saveToCloud();
+        }
+
+        document.getElementById('preset-las500-1000').addEventListener('click', () => {
+            addPresetCargo(1.2, 0.4, 2.0, 1000, 'ラス(500)1000㎡');
         });
 
         document.getElementById('preset-las500-2000').addEventListener('click', () => {
-            if (isLocked) return;
-            const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 2.4, 0.4, 2.0, -(currentTruck.w / 2 + 4), bedBottomY + 0.2, 0, '0xf87171', 'ラス(500)2000㎡', 2000, false, '衣川', false);
-            selectObject(cargoObj.mesh);
-            saveToCloud();
+            addPresetCargo(2.4, 0.4, 2.0, 2000, 'ラス(500)2000㎡');
         });
 
         document.getElementById('preset-las500-4000').addEventListener('click', () => {
-            if (isLocked) return;
-            const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 2.4, 0.4, 4.0, -(currentTruck.w / 2 + 4), bedBottomY + 0.2, 0, '0xf87171', 'ラス(500)4000㎡', 4000, false, '衣川', false);
-            selectObject(cargoObj.mesh);
-            saveToCloud();
+            addPresetCargo(2.4, 0.4, 4.0, 4000, 'ラス(500)4000㎡');
         });
 
         document.getElementById('preset-las1000-1000').addEventListener('click', () => {
-            if (isLocked) return;
-            const newId = 'cargo_' + Date.now();
-            const cargoObj = createCargoMesh(newId, 0.7, 0.6, 2.0, -(currentTruck.w / 2 + 4), bedBottomY + 0.3, 0, '0xf87171', 'ラス(1000)1000㎡', 1000, false, '衣川', false);
-            selectObject(cargoObj.mesh);
-            saveToCloud();
+            addPresetCargo(0.7, 0.6, 2.0, 1000, 'ラス(1000)1000㎡');
         });
 
         const tempV = new THREE.Vector3();
@@ -1665,6 +1736,7 @@
             updateLabelsPosition();
             renderer.render(scene, camera);
         }
+	updateLockUI();
         animate();
     </script>
 </body>
