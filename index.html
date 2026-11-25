@@ -36,6 +36,30 @@
     .btn-noda { background-color: #2b6cb0; }      /* 野田便：青 */
     .btn-bousai { background-color: #dd6b20; }    /* 野田防災便：オレンジ */
     .btn-minami { background-color: #2f855a; }    /* 南関東便：緑 */
+
+    /* 追加：ドライバーへのお願いメッセージ用スタイル */
+    .driver-notice {
+      margin-top: 24px;
+      padding: 14px 16px;
+      background-color: #fffaf0;
+      border: 1px solid #fbd38d;
+      border-left: 5px solid #dd6b20;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #2d3748;
+    }
+    .driver-notice-title {
+      font-weight: bold;
+      color: #c05621;
+      margin-bottom: 4px;
+      font-size: 1rem;
+    }
+    .driver-notice a {
+      color: #2b6cb0;
+      font-weight: bold;
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -52,6 +76,12 @@
     <button class="btn btn-noda" onclick="goNext('野田便')">① 野田便へ</button>
     <button class="btn btn-bousai" onclick="goNext('野田防災便')">② 野田防災便へ</button>
     <button class="btn btn-minami" onclick="goNext('南関東便')">③ 南関東便へ</button>
+  </div>
+
+  <!-- 3. ドライバーへのお願い -->
+  <div class="driver-notice">
+    <div class="driver-notice-title">ドライバーへのお願い</div>
+    <div>野田便積込みに関するご質問は、衣川佐々木工場長(<a href="tel:09092110179">090-9211-0179</a>)にお願いします。</div>
   </div>
 </div>
 
