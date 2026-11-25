@@ -377,11 +377,12 @@
 
         <div class="input-group" style="margin-bottom: 12px;">
             <label style="font-weight: bold; color: #059669;">🏷️ ラベル表示:</label>
-            <select id="label-mode">
-                <option value="all">すべて表示</option>
-                <option value="selected" selected>選択中のみ表示</option>
-                <option value="none">すべて非表示</option>
-            </select>
+	<select id="label-mode">
+    	<option value="all" selected>すべて表示</option>
+    	<option value="selected">選択中のみ表示</option>
+    	<option value="none">すべて非表示</option>
+	</select>            
+
         </div>
 
         <div class="input-group">
@@ -971,12 +972,13 @@
                 }
             }
 
-            const canEdit = isWriteAuthorized && !isLocked;
+           const canEdit = isWriteAuthorized && !isLocked;
 
-	// 閲覧モード時は車種・積み荷設定を非表示
+	// ロック中は解除ボタンを表示できるようにする
 	const controlPanel = document.getElementById('control-panel');
 	if (controlPanel) {
-    	controlPanel.style.display = canEdit ? 'block' : 'none';
+    	controlPanel.style.display =
+        (!isWriteAuthorized && !isLocked) ? 'none' : 'block';
 	}
 
 	if (isLocked) {
@@ -1282,9 +1284,10 @@
             cargoCountEl.textContent = loadedCargos.length;
         }
 
-        function updateLabelsVisibility() {
-            const labelModeEl = document.getElementById('label-mode');
-            const mode = isMobile ? 'all' : (labelModeEl ? labelModeEl.value : 'selected');
+	function updateLabelsVisibility() {
+    	const labelModeEl = document.getElementById('label-mode');
+    	const mode = (isMobile || !isWriteAuthorized) ? 'all' : (labelModeEl ? labelModeEl.value : 'all');       
+
             for (let cargo of loadedCargos) {
                 const element = cargo.labelEl;
                 if (!element) continue;
