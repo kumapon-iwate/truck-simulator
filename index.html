@@ -4,17 +4,39 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>出荷日・便選択</title>
+
   <style>
-    body { font-family: sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; background: #f5f5f5; }
-    .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-    h1 { font-size: 1.2rem; text-align: center; color: #333; margin-bottom: 20px; }
-    
-    label { display: block; font-weight: bold; margin-bottom: 8px; }
-    
-    /* 修正箇所：iOS等でのはみ出しを防ぐためのスタイル追加 */
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      max-width: 500px;
+      margin: 0 auto;
+      background: #f5f5f5;
+    }
+
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      font-size: 1.2rem;
+      text-align: center;
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
     input[type="date"] {
       width: 100%;
-      max-width: 100%; /* はみ出し防止 */
+      max-width: 100%;
       font-size: 1.2rem;
       padding: 12px;
       border: 2px solid #ccc;
@@ -25,21 +47,64 @@
       -webkit-appearance: none;
       background-color: #fff;
     }
-    
-    .btn-group { display: flex; flex-direction: column; gap: 12px; }
+
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
     .btn {
-      padding: 16px; font-size: 1.1rem; font-weight: bold; color: white;
-      border: none; border-radius: 8px; cursor: pointer; text-align: center;
+      padding: 16px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
       transition: opacity 0.2s;
     }
-    .btn:hover { opacity: 0.9; }
-    .btn-noda { background-color: #2b6cb0; }      /* 野田便：青 */
-    .btn-bousai { background-color: #dd6b20; }    /* 野田防災便：オレンジ */
-    .btn-minami { background-color: #2f855a; }    /* 南関東便：緑 */
 
-    /* 追加：ドライバーへのお願いメッセージ用スタイル */
-    .driver-notice {
+    .btn:hover {
+      opacity: 0.9;
+    }
+
+    .btn-noda {
+      background-color: #2b6cb0;
+    }
+
+    .btn-bousai {
+      background-color: #dd6b20;
+    }
+
+    .btn-minami {
+      background-color: #2f855a;
+    }
+
+    /* ご案内欄 */
+    .info-notice {
       margin-top: 24px;
+      padding: 14px 16px;
+      background-color: #ebf8ff;
+      border: 1px solid #90cdf4;
+      border-left: 5px solid #3182ce;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      color: #2d3748;
+    }
+
+    .info-notice-title {
+      font-weight: bold;
+      color: #2b6cb0;
+      margin-bottom: 4px;
+      font-size: 1rem;
+    }
+
+    /* ドライバーへのお願い */
+    .driver-notice {
+      margin-top: 16px;
       padding: 14px 16px;
       background-color: #fffaf0;
       border: 1px solid #fbd38d;
@@ -49,12 +114,14 @@
       line-height: 1.6;
       color: #2d3748;
     }
+
     .driver-notice-title {
       font-weight: bold;
       color: #c05621;
       margin-bottom: 4px;
       font-size: 1rem;
     }
+
     .driver-notice a {
       color: #2b6cb0;
       font-weight: bold;
@@ -62,44 +129,71 @@
     }
   </style>
 </head>
+
 <body>
+  <div class="card">
 
-<div class="card">
-  <h1>出荷日・行き先を選択</h1>
+    <h1>出荷日・行き先を選択</h1>
 
-  <!-- 1. 出荷日付を選択 -->
-  <label for="ship-date">出荷日を選択：</label>
-  <input type="date" id="ship-date">
+    <!-- 出荷日選択 -->
+    <label for="ship-date">出荷日を選択：</label>
+    <input type="date" id="ship-date">
 
-  <!-- 2. 便を選択して遷移 -->
-  <div class="btn-group">
-    <button class="btn btn-noda" onclick="goNext('野田便')">① 野田便へ</button>
-    <button class="btn btn-bousai" onclick="goNext('野田防災便')">② 野田防災便へ</button>
-    <button class="btn btn-minami" onclick="goNext('南関東便')">③ 南関東便へ</button>
+    <!-- 便選択 -->
+    <div class="btn-group">
+      <button class="btn btn-noda" onclick="goNext('野田便')">
+        ① 野田便へ
+      </button>
+
+      <button class="btn btn-bousai" onclick="goNext('野田防災便')">
+        ② 野田防災便へ
+      </button>
+
+      <button class="btn btn-minami" onclick="goNext('南関東便')">
+        ③ 南関東便へ
+      </button>
+    </div>
+
+    <!-- ご案内 -->
+    <div class="info-notice">
+      <div class="info-notice-title">ご案内</div>
+      <div>
+        このアプリは、おおよその配置と荷物の大きさを示すものです。実際の積込み位置の指定はドライバーの指示によります。
+      </div>
+    </div>
+
+    <!-- ドライバーへのお願い -->
+    <div class="driver-notice">
+      <div class="driver-notice-title">ドライバーへのお願い</div>
+      <div>
+        野田・防災便積込みに関するお問い合わせは、
+        衣川・佐々木工場長
+        (<a href="tel:09092110179">090-9211-0179</a>)
+        にお願いします。
+      </div>
+    </div>
+
   </div>
 
-  <!-- 3. ドライバーへのお願い -->
-  <div class="driver-notice">
-    <div class="driver-notice-title">ドライバーへのお願い</div>
-    <div>野田便積込みに関するご質問は、衣川佐々木工場長(<a href="tel:09092110179">090-9211-0179</a>)にお願いします。</div>
-  </div>
-</div>
+  <script>
+    // 初期値として今日の日付を設定
+    const dateInput = document.getElementById('ship-date');
+    dateInput.value = new Date().toISOString().split('T')[0];
 
-<script>
-  // 初期値として「今日」を選択状態にする
-  const dateInput = document.getElementById('ship-date');
-  dateInput.value = new Date().toISOString().split('T')[0];
+    function goNext(destination) {
+      const selectedDate = dateInput.value;
 
-  function goNext(destination) {
-    const selectedDate = dateInput.value;
-    if (!selectedDate) {
-      alert('出荷日を選択してください。');
-      return;
+      if (!selectedDate) {
+        alert('出荷日を選択してください。');
+        return;
+      }
+
+      const url =
+        `tsumikomi.html?date=${encodeURIComponent(selectedDate)}&dest=${encodeURIComponent(destination)}`;
+
+      window.location.href = url;
     }
-    const url = `tsumikomi.html?date=${encodeURIComponent(selectedDate)}&dest=${encodeURIComponent(destination)}`;
-    window.location.href = url;
-  }
-</script>
+  </script>
 
 </body>
 </html>
