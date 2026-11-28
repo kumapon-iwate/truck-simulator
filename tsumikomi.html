@@ -972,16 +972,16 @@
                 }
             }
 
-           const canEdit = isWriteAuthorized && !isLocked;
+            const canEdit = isWriteAuthorized && !isLocked;
 
-	// ロック中は解除ボタンを表示できるようにする
-	const controlPanel = document.getElementById('control-panel');
-	if (controlPanel) {
-    	controlPanel.style.display =
-        (!isWriteAuthorized && !isLocked) ? 'none' : 'block';
-	}
+            // ロック中は解除ボタンを表示できるようにする
+            const controlPanel = document.getElementById('control-panel');
+            if (controlPanel) {
+                controlPanel.style.display =
+                    (isMobile || (!isWriteAuthorized && !isLocked)) ? 'none' : 'block';
+            }
 
-	if (isLocked) {
+            if (isLocked) {
                 if (lockBtn) {
                     lockBtn.textContent = "🔓 ロックを解除する (要PW)";
                     lockBtn.classList.add('locked');
@@ -1284,9 +1284,9 @@
             cargoCountEl.textContent = loadedCargos.length;
         }
 
-	function updateLabelsVisibility() {
-    	const labelModeEl = document.getElementById('label-mode');
-    	const mode = (isMobile || !isWriteAuthorized) ? 'all' : (labelModeEl ? labelModeEl.value : 'all');       
+        function updateLabelsVisibility() {
+            const labelModeEl = document.getElementById('label-mode');
+            const mode = (isMobile || !isWriteAuthorized) ? 'all' : (labelModeEl ? labelModeEl.value : 'all');       
 
             for (let cargo of loadedCargos) {
                 const element = cargo.labelEl;
@@ -1739,7 +1739,7 @@
             updateLabelsPosition();
             renderer.render(scene, camera);
         }
-	updateLockUI();
+        updateLockUI();
         animate();
     </script>
 </body>
