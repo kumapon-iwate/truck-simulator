@@ -94,7 +94,7 @@
             font-size: 12px; transition: background 0.2s;
         }
         .btn-lock-toggle:hover { background-color: #0369a1; }
-        .btn-lock-toggle.locked { background-color: #e11d48; }
+        .btn-lock-toggle.locked { background-color: #e11d48; margin-top: 0; }
         .btn-lock-toggle.locked:hover { background-color: #be123c; }
 
         #list-panel {
@@ -343,9 +343,9 @@
     </div>
 
     <div id="control-panel">
-        <h1>🚚 車種・積み荷の設定</h1>
+        <h1 class="control-body-item">🚚 車種・積み荷の設定</h1>
         
-        <div class="input-group" style="background: #fff5f5; padding: 6px; border-radius: 4px; border: 1px solid #fed7d7; margin-bottom: 12px;">
+        <div class="input-group control-body-item" style="background: #fff5f5; padding: 6px; border-radius: 4px; border: 1px solid #fed7d7; margin-bottom: 12px;">
             <label style="font-weight: bold; color: #c53030;">🚚 トラック種別:</label>
             <select id="truck-type" style="border: 1px solid #feb2b2; font-weight: bold;">
                 <option value="4t_flat">4t 平 (幅2.15m × 長6.2m / 3,100kg)</option>
@@ -357,7 +357,7 @@
             </select>
         </div>
 
-        <div class="preset-section">
+        <div class="preset-section control-body-item">
             <div class="preset-title">⚡ 定番品のクイック追加</div>
             <div class="preset-buttons">
                 <button class="btn-preset" id="preset-las500-1000">
@@ -375,7 +375,7 @@
             </div>
         </div>
 
-        <div class="input-group" style="margin-bottom: 12px;">
+        <div class="input-group control-body-item" style="margin-bottom: 12px;">
             <label style="font-weight: bold; color: #059669;">🏷️ ラベル表示:</label>
 	<select id="label-mode">
     	<option value="all" selected>すべて表示</option>
@@ -385,32 +385,32 @@
 
         </div>
 
-        <div class="input-group">
+        <div class="input-group control-body-item">
             <label style="font-weight: bold; color: #2563eb;">📝 メモ (品名等):</label>
             <input type="text" id="cargo-memo" value="ラス(500)1000㎡" placeholder="例: ラス(500)1000㎡">
         </div>
-        <div class="input-group">
+        <div class="input-group control-body-item">
             <label style="font-weight: bold; color: #d97706;">⚖️ 重量 (kg):</label>
             <input type="number" id="cargo-weight" value="1000" step="50" min="0">
         </div>
-        <div class="input-group" style="margin-bottom: 12px; background: #fff1f2; padding: 4px 6px; border-radius: 4px; border: 1px solid #fecdd3;">
+        <div class="input-group control-body-item" style="margin-bottom: 12px; background: #fff1f2; padding: 4px 6px; border-radius: 4px; border: 1px solid #fecdd3;">
             <label style="font-weight: bold; color: #e11d48; width: 120px;">⚠️ 上積不可:</label>
             <input type="checkbox" id="cargo-nostack" style="width: auto; transform: scale(1.2); cursor: pointer;">
         </div>
 
-        <div class="input-group">
+        <div class="input-group control-body-item">
             <label>幅 (Xm):</label>
             <input type="number" id="cargo-w" value="1.2" step="0.1" min="0.1" max="2.5">
         </div>
-        <div class="input-group">
+        <div class="input-group control-body-item">
             <label>高さ (Ym):</label>
             <input type="number" id="cargo-h" value="0.4" step="0.1" min="0.1" max="2.5">
         </div>
-        <div class="input-group">
+        <div class="input-group control-body-item">
             <label>長さ (Zm):</label>
             <input type="number" id="cargo-l" value="2.0" step="0.1" min="0.1" max="13.0">
         </div>
-        <div class="input-group">
+        <div class="input-group control-body-item">
             <label>積み込み場所:</label>
             <select id="cargo-color">
                 <option value="0xf87171" data-loc="衣川">衣川 (薄赤)</option>
@@ -420,11 +420,10 @@
             </select>
         </div>
 
-        <button id="add-btn" class="btn-add">🚚 手動入力の荷物を追加</button>
-        <button id="unload-all-btn" class="btn-unload-all">📦 荷台の荷物をすべて外に出す</button>
+        <button id="add-btn" class="btn-add control-body-item">🚚 手動入力の荷物を追加</button>
         <button id="lock-toggle-btn" class="btn-lock-toggle">🔒 積載を確定する（ロック）</button>
 
-        <div class="help-text">
+        <div class="help-text control-body-item">
             💡 <strong>操作方法:</strong><br>
             ・閲覧はパスワード不要です。編集・保存にはPW（3511）が必要です<br>
             ・**仮置きエリア**: 文字が書かれた領域へ移動・保管できます<br>
@@ -959,7 +958,6 @@
             const lockBtn = document.getElementById('lock-toggle-btn');
             const readOnlyTag = document.getElementById('read-only-tag');
             const addBtn = document.getElementById('add-btn');
-            const unloadAllBtn = document.getElementById('unload-all-btn');
             const truckTypeSelect = document.getElementById('truck-type');
 
             if (writeAuthBtn) {
@@ -974,11 +972,16 @@
 
             const canEdit = isWriteAuthorized && !isLocked;
 
-            // ロック中は解除ボタンを表示できるようにする
+            // ロック中は解除ボタンを表示できるようにする（PC版のみ解除ボタン単体表示）
             const controlPanel = document.getElementById('control-panel');
             if (controlPanel) {
                 controlPanel.style.display =
                     (isMobile || (!isWriteAuthorized && !isLocked)) ? 'none' : 'block';
+
+                const bodyItems = controlPanel.querySelectorAll('.control-body-item');
+                bodyItems.forEach((el) => {
+                    el.style.display = (!isMobile && isLocked) ? 'none' : '';
+                });
             }
 
             if (isLocked) {
@@ -1004,7 +1007,6 @@
             }
 
             if (addBtn) addBtn.disabled = !canEdit;
-            if (unloadAllBtn) unloadAllBtn.disabled = !canEdit;
             if (truckTypeSelect) truckTypeSelect.disabled = !canEdit;
             if (instructionInput) instructionInput.readOnly = isMobile || !canEdit;
             if (saveMemoBtn) saveMemoBtn.disabled = !canEdit;
@@ -1592,17 +1594,6 @@
             const newId = 'cargo_' + Date.now();
             const cargoObj = createCargoMesh(newId, w, h, l, -(currentTruck.w / 2 + 4), bedBottomY + h / 2, 0, colorHex, memo, weight, noStack, location, false);
             selectObject(cargoObj.mesh);
-            saveToCloud();
-        });
-
-        document.getElementById('unload-all-btn').addEventListener('click', () => {
-            if (isLocked || !ensureWriteAuthorized()) return;
-            let offsetZ = -currentTruck.l / 2 + 1;
-            loadedCargos.forEach(cargo => {
-                cargo.mesh.position.set(-(currentTruck.w / 2 + 4), bedBottomY + cargo.h / 2, offsetZ);
-                offsetZ += cargo.l + 0.2;
-            });
-            updateSummaryAndList();
             saveToCloud();
         });
 
